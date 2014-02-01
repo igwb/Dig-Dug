@@ -4,7 +4,12 @@ main: me.igwb.DigDug.DigDug
 version: 0.1
 soft-depend: [WorldEdit, WorldGuard]
 commands:
-   none:
+   digdug:
+      description: test
+      usage: /test
+      permission: test.test
+      permission-message: You don't have permission to use that command!
+   dd:
       description: test
       usage: /test
       permission: test.test
