@@ -22,53 +22,89 @@ public class CommandListener implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender arg0, Command arg1, String arg2, String[] arg3) {
+    public boolean onCommand(CommandSender sender, Command cmd, String firstArg, String[] args) {
 
 
-        if (!(arg0 instanceof Player)) {
-            arg0.sendMessage("DigDug commands can only be performed by a player!");
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("DigDug commands can only be performed by a player!");
             return true;
         }
 
-        if (arg1.getName().toLowerCase().equals("dd") | arg1.getName().toLowerCase().equals("digdug")) {
-            if (arg3 != null && arg3.length >= 1) {
-                switch (arg3[0].toLowerCase()) {
+        if (cmd.getName().toLowerCase().equals("dd") | cmd.getName().toLowerCase().equals("digdug")) {
+            if (args != null && args.length >= 1) {
+                switch (args[0].toLowerCase()) {
 
                 case "arena":
-                    if (arg3.length >= 3) {
-                        switch (arg3[1].toLowerCase()) {
+                    if (args.length >= 3) {
+                        switch (args[1].toLowerCase()) {
                         case "create":
-                            if (parent.getWE().getSelection((Player) arg0) != null) {
-                                if (parent.getArenaManager().exists(arg3[2])) {
-                                    arg0.sendMessage("An arena with the name \"" + arg3[2] + "\" already exists!");
-                                } else {
-                                    parent.getArenaManager().addArena(arg3[2]);
-                                    try {
-                                        parent.getArenaManager().getArena(arg3[2]).setRegionArena((CuboidRegion) parent.getWE().getSelection((Player) arg0).getRegionSelector().getRegion());
-                                    } catch (IncompleteRegionException e) {
-                                        arg0.sendMessage("The region you selected is invalid! It must be a cuboid!");
-                                    }
-                                }
+                            //Check if the arena exists already
+                            if (parent.getArenaManager().exists(args[2])) {
+                                sender.sendMessage("An arena with the name \"" + args[2] + "\" already exists!");
                             } else {
-                                arg0.sendMessage("You did not select an area!");
+
+                                //Check if the sender as selected a region
+                                if (parent.getWE().getSelection((Player) sender) != null) {
+                                    //Add the arena
+                                    parent.getArenaManager().addArena(args[2]);
+                                    try {
+                                        parent.getArenaManager().getArena(args[2]).setRegionArena((CuboidRegion) parent.getWE().getSelection((Player) sender).getRegionSelector().getRegion());
+                                    } catch (IncompleteRegionException e) {
+                                        sender.sendMessage("The region you selected is invalid! (It must be a cuboid)");
+                                    }
+
+                                    //Notify the sender about the creation progress
+                                    sender.sendMessage("Arena created successfuly! The following things are still missing:");
+                                    for (String missing : parent.getArenaManager().getArena(args[2]).getMissing()) {
+                                        sender.sendMessage(missing);
+                                    }
+                                } else {
+                                    sender.sendMessage("You did not select a region with WorldEdit!");
+                                }
                             }
                             break;
                         case "delete":
                             break;
                         case "set":
+                            if (parent.getArenaManager().exists(args[2])) {
+                                switch (args[3]) {
+                                case "digregion":
+                                  //Check if the sender as selected a region
+                                    if (parent.getWE().getSelection((Player) sender) != null) {
+                                        //Get the arena
+                                        Arena ar = parent.getArenaManager().getArena(args[2]);
+                                        try {
+                                            ar.setRegionDig((CuboidRegion) parent.getWE().getSelection((Player) sender).getRegionSelector().getRegion());
+                                        } catch (IncompleteRegionException e) {
+                                            sender.sendMessage("The region you selected is invalid! (It must be a cuboid.)");
+                                        }
 
+                                        //Notify the sender about the creation progress
+                                        sender.sendMessage("Dig region assigned successfuly! The following things are still missing:");
+                                        for (String missing : parent.getArenaManager().getArena(args[2]).getMissing()) {
+                                            sender.sendMessage(missing);
+                                        }
+                                    } else {
+                                        sender.sendMessage("You did not select a region with WorldEdit!");
+                                    }
+                                    break;
+                                default:
+                                    break;
+                                }
+                            } else {
+                                sender.sendMessage("The arena \"" + args[2] + "\" does not exist!");
+                            }
                             break;
                         case "check":
-
                             break;
+
                         default:
-                            arg0.sendMessage("Usage: digdug arena [name] [create, delete, set, check]");
                             break;
                         }
                     } else {
-                        arg0.sendMessage("Usage: digdug arena [create, delete] [name]");
+                        sender.sendMessage("Usage: digdug arena [create, delete] [name]");
                     }
-                    break;
+
                 case "list":
                     ArrayList<Arena> arenas = parent.getArenaManager().getArenas();
                     String msg = "Known arenas: ";
@@ -76,10 +112,10 @@ public class CommandListener implements CommandExecutor {
                         for (Arena arena : arenas) {
                             msg += arena.getName() + " ";
                         }
-                        arg0.sendMessage(msg);
+                        sender.sendMessage(msg);
                     } else {
-                        arg0.sendMessage("There are currently no arenas defined!");
-                        arg0.sendMessage("Create on with /digdug arena create [name]");
+                        sender.sendMessage("There are currently no arenas defined!");
+                        sender.sendMessage("Create on with /digdug arena create [name]");
                     }
 
                     break;
@@ -87,7 +123,7 @@ public class CommandListener implements CommandExecutor {
                     break;
                 }
             } else {
-                arg0.sendMessage("Missing parameters!");
+                sender.sendMessage("Missing parameters!");
             }
         } else {
             return false;

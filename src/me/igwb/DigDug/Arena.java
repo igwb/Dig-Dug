@@ -57,17 +57,17 @@ public class Arena {
         }
 
         if (regionArena != null && regionDig != null) {
-            if (!regionArena.contains(regionDig.getMinimumPoint()) || !regionArena.contains(regionArena.getMaximumPoint())) {
+            if (!regionArena.contains(regionDig.getMinimumPoint()) || !regionArena.contains(regionDig.getMaximumPoint())) {
                 missing.add("The dig region is not inside of the arena region!");
             }
         }
 
-        if (playerSpawns != null && playerSpawns.size() >= 2) {
+        if (playerSpawns == null || playerSpawns.size() < 2) {
             missing.add("There must be at least two player spawns!");
         }
 
-        if (exitPoint != null) {
-            missing.add("The exit point is not defined");
+        if (exitPoint == null) {
+            missing.add("The exit point is not defined!");
         }
 
         return missing;

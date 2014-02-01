@@ -50,7 +50,7 @@ public class ArenaManager {
     public ArrayList<Arena> getArenas() {
         return arenas;
     }
-    
+
     /**
      * Check if an arena exists.
      * @param arenaName Name of the arena to check for.
