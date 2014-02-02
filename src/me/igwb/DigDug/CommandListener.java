@@ -27,6 +27,7 @@ public class CommandListener implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command cmd, String firstArg, String[] args) {
 
 
+
         if (!(sender instanceof Player)) {
             sender.sendMessage("DigDug commands can only be performed by a player!");
             return true;
@@ -79,11 +80,14 @@ public class CommandListener implements CommandExecutor {
 
                             checkArena(pSender, arenaName);
                             break;
+                        case "regen":
+                            parent.getArenaManager().getArena(arenaName).regenerateDigRegion();
+                            break;
                         default:
                             break;
                         }
                     } else {
-                        sender.sendMessage("Usage: digdug arena [name] [create, delete, set]");
+                        sender.sendMessage("Usage: digdug arena [name] [create, delete, set, regen]");
                     }
                     break;
                 case "list":

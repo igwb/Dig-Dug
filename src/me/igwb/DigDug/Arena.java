@@ -5,12 +5,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.patterns.BlockChance;
+import com.sk89q.worldedit.patterns.RandomFillPattern;
 import com.sk89q.worldedit.regions.CuboidRegion;
 
 public class Arena {
@@ -25,6 +34,8 @@ public class Arena {
     private HashMap<String, Location> playerSpawns;
     private Location exitPoint;
 
+    private ArrayList<BlockChance> blocksChances;
+
     private String name;
 
     /**
@@ -37,6 +48,9 @@ public class Arena {
         parent = parentPlugin;
         name = arenaName;
         playerSpawns = new HashMap<String, Location>();
+
+        blocksChances = new ArrayList<BlockChance>();
+        blocksChances.add(new BlockChance(new BaseBlock(7), 100.0));
     }
 
     /**
@@ -212,6 +226,13 @@ public class Arena {
             conf.set("warps.exit", Serializer.locationToString(exitPoint));
         }
 
+        ArrayList<String> chanceStrings = new ArrayList<String>();
+        for (BlockChance bc : blocksChances) {
+            chanceStrings.add(Serializer.blockChanceToString(bc));
+        }
+
+        conf.set("blocks", chanceStrings);
+
         try {
             conf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
         } catch (IOException e) {
@@ -227,7 +248,22 @@ public class Arena {
         FileConfiguration conf = getArenaConfig();
 
         regionArena = Serializer.stringToCuboid(conf.getString("regions.arena"));
-        regionArena = Serializer.stringToCuboid(conf.getString("regions.dig"));
+        regionDig = Serializer.stringToCuboid(conf.getString("regions.dig"));
+
+        HashMap<String, Object> spawnsRead = (HashMap<String, Object>) conf.getConfigurationSection("spawns").getValues(false);
+        for (String key : spawnsRead.keySet()) {
+            playerSpawns.put(key, Serializer.stringToLocation((String) spawnsRead.get(key)));
+        }
+
+
+        @SuppressWarnings("unchecked")
+        ArrayList<String> chanceStrings = (ArrayList<String>) conf.get("blocks");
+        blocksChances.clear();
+        for (String cs : chanceStrings) {
+            blocksChances.add(Serializer.stringToBlockChance(cs));
+        }
+
+        exitPoint = Serializer.stringToLocation(conf.getString("warps.exit"));
     }
 
     /**
@@ -280,6 +316,31 @@ public class Arena {
         if (defConfigStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
             arenaConfig.setDefaults(defConfig);
+        }
+    }
+
+    /**
+     * Regenerates the dig region of this Arena.
+     * The Arena must be valid.
+     */
+    public void regenerateDigRegion() {
+
+        //Is the arena valid?
+        if (!isValid()) {
+            return;
+        }
+
+        Iterator<BlockVector> it = regionDig.iterator();
+        RandomFillPattern rndFill = new RandomFillPattern(blocksChances);
+
+        Block current;
+        BlockVector currentVector;
+        World world = Bukkit.getServer().getWorld(regionDig.getWorld().getName());
+
+        while (it.hasNext()) {
+            currentVector = it.next();
+            current = new Location(world, currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ()).getBlock();
+            current.setType(Material.getMaterial((rndFill.next(currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ()).getType())));
         }
     }
 }

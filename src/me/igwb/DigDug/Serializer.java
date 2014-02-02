@@ -6,7 +6,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
 import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitUtil;
+import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.regions.CuboidRegion;
 
 public final class Serializer {
@@ -99,4 +101,27 @@ public final class Serializer {
 
         return new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
     }
+
+    /**
+     * Serialize a BlockChance.
+     * @param bc The BlockChance to serialize.
+     * @return The String.
+     */
+    public static String blockChanceToString(BlockChance bc) {
+
+        return  bc.getBlock().getId() + ":" + bc.getBlock().getData() + "-" + bc.getChance() + "%";
+    }
+
+    /**
+     * De-serialize a BlockChance.
+     * @param bc The string to de-serialize.
+     * @return The BlockChance.
+     */
+    public static BlockChance stringToBlockChance(String bc) {
+
+        String[] split = bc.replace("%", "").split("-");
+
+        return new BlockChance(new BaseBlock(Integer.parseInt(split[0].split(":")[0]), Integer.parseInt(split[0].split(":")[1])), Double.parseDouble(split[1]));
+    }
+
 }

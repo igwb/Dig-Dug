@@ -22,18 +22,16 @@ public class ArenaManager {
     public void loadArenas(DigDug parent) {
         File arenaFolder = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas");
 
-        parent.getLogger().log(Level.INFO, "Reading from: " + arenaFolder.getAbsolutePath());
-
         File[] arenaFiles = arenaFolder.listFiles();
 
-        parent.getLogger().log(Level.INFO, "Found: " + arenaFiles.length);
-
-        String name;
-        for (File file : arenaFiles) {
-            parent.getLogger().log(Level.INFO, "Found: " + file.getAbsolutePath());
-            name = file.getName().replace(".yml", "").replace("arena_", "");
-            addArena(parent, name);
-            getArena(name).load();
+        if (arenaFiles != null) {
+            String name;
+            for (File file : arenaFiles) {
+                parent.getLogger().log(Level.INFO, "Found: " + file.getAbsolutePath());
+                name = file.getName().replace(".yml", "").replace("arena_", "");
+                addArena(parent, name);
+                getArena(name).load();
+            }
         }
     }
 
