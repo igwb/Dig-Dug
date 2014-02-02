@@ -1,6 +1,8 @@
 package me.igwb.DigDug;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 public class ArenaManager {
 
@@ -14,17 +16,49 @@ public class ArenaManager {
     }
 
     /**
+     * Attempts to load arenas from file.
+     * @param parent Instance of the DigDug plugin.
+     */
+    public void loadArenas(DigDug parent) {
+        File arenaFolder = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas");
+
+        parent.getLogger().log(Level.INFO, "Reading from: " + arenaFolder.getAbsolutePath());
+
+        File[] arenaFiles = arenaFolder.listFiles();
+
+        parent.getLogger().log(Level.INFO, "Found: " + arenaFiles.length);
+
+        String name;
+        for (File file : arenaFiles) {
+            parent.getLogger().log(Level.INFO, "Found: " + file.getAbsolutePath());
+            name = file.getName().replace(".yml", "").replace("arena_", "");
+            addArena(parent, name);
+            getArena(name).load();
+        }
+    }
+
+    /**
+     * Saves all loaded arenas to file.
+     */
+    public void saveArenas() {
+        for (Arena ar : arenas) {
+            ar.save();
+        }
+    }
+
+    /**
      * Tries to add a new Arena by name. This will automatically create a new instance of the Arena class.
+     * @param parent An instance of the DigDug plugin.
      * @param name The name for the Arena
      * @return true if the arena was added, false if an arena by that name already exists
      */
-    public boolean addArena(String name) {
+    public boolean addArena(DigDug parent, String name) {
         for (Arena ar : getArenas()) {
             if (ar.getName().equalsIgnoreCase(name)) {
                 return false;
             }
         }
-        arenas.add(new Arena(name));
+        arenas.add(new Arena(parent, name));
         return true;
     }
 

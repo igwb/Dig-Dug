@@ -14,7 +14,7 @@ public class DigDug extends JavaPlugin {
     private ArenaManager myArenaManager;
 
     /**
-     * Called by bukkit.
+     * Called by Bukkit.
      */
     public void onEnable() {
 
@@ -31,6 +31,14 @@ public class DigDug extends JavaPlugin {
         registerCommands();
 
         myArenaManager = new ArenaManager();
+        myArenaManager.loadArenas(this);
+    }
+
+    /**
+     * Called by Bukkit.
+     */
+    public void onDisable() {
+        myArenaManager.saveArenas();
     }
 
     /**

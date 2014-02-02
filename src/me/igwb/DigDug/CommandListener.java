@@ -2,11 +2,11 @@ package me.igwb.DigDug;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.regions.CuboidRegion;
@@ -61,7 +61,7 @@ public class CommandListener implements CommandExecutor {
                                 break;
                             case "playerspawn":
 
-                                if (args.length >= 4) {
+                                if (args.length >= 5) {
                                     setPlayerSpawn(pSender, arenaName, args[4]);
                                 } else {
                                     pSender.sendMessage("Usage: digdug arena [name] set playerspawn [spawnname]");
@@ -195,8 +195,11 @@ public class CommandListener implements CommandExecutor {
         }
 
         //Notify the player
-        for (String missing : parent.getArenaManager().getArena(arenaName).getMissing()) {
-            sender.sendMessage(missing);
+        ArrayList<String> missing = parent.getArenaManager().getArena(arenaName).getMissing();
+        if (missing != null) {
+            for (String msg : missing) {
+                sender.sendMessage(msg);
+            }
         }
     }
 
@@ -215,7 +218,7 @@ public class CommandListener implements CommandExecutor {
         }
 
         //Try to add the spawn
-        Vector location = sender.getPlayer().getLocation().toVector();
+        Location location = sender.getPlayer().getLocation();
         if (parent.getArenaManager().getArena(arenaName).addPlayerSpawn(spawnName, location)) {
             sender.sendMessage("Successfuly added playerspawn \"" + spawnName + "\" at X:" + location.getBlockX() + " Y:" + location.getBlockY() + " Z:" + location.getBlockZ());
         } else {
@@ -237,7 +240,7 @@ public class CommandListener implements CommandExecutor {
         }
 
         //Try to add the exit point
-        Vector location = sender.getPlayer().getLocation().toVector();
+        Location location = sender.getPlayer().getLocation();
         parent.getArenaManager().getArena(arenaName).setExitPoint(location);
         sender.sendMessage("Successfuly set exit point to X:" + location.getBlockX() + " Y:" + location.getBlockY() + " Z:" + location.getBlockZ());
 
@@ -259,7 +262,7 @@ public class CommandListener implements CommandExecutor {
         //Check if the sender as selected a region
         if (parent.getWE().getSelection(sender) != null) {
             //Add the arena
-            parent.getArenaManager().addArena(arenaName);
+            parent.getArenaManager().addArena(parent, arenaName);
             try {
                 parent.getArenaManager().getArena(arenaName).setRegionArena((CuboidRegion) parent.getWE().getSelection(sender).getRegionSelector().getRegion().clone());
             } catch (IncompleteRegionException e) {

@@ -1,28 +1,42 @@
 package me.igwb.DigDug;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import org.bukkit.util.Vector;
+import java.util.logging.Level;
+
+import org.bukkit.Location;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import com.sk89q.worldedit.regions.CuboidRegion;
 
 public class Arena {
+    private FileConfiguration arenaConfig = null;
+    private File arenaConfigFile = null;
+
+    private DigDug parent;
+
     private CuboidRegion regionArena;
     private CuboidRegion regionDig;
 
-    private HashMap<String, Vector> playerSpawns;
-    private Vector exitPoint;
+    private HashMap<String, Location> playerSpawns;
+    private Location exitPoint;
 
     private String name;
 
     /**
      * Creates a new instance of Arena.
+     * @param parentPlugin Instance of the DigDug plugin.
      * @param arenaName The name for the new Arena.
      */
-    public Arena(String arenaName) {
+    public Arena(DigDug parentPlugin, String arenaName) {
 
+        parent = parentPlugin;
         name = arenaName;
-        playerSpawns = new HashMap<String, Vector>();
+        playerSpawns = new HashMap<String, Location>();
     }
 
     /**
@@ -32,14 +46,19 @@ public class Arena {
     public boolean isValid() {
         boolean valid = true;
 
-        //Check if the regions are set and if the dig region is inside of the arena region
-        valid = valid && regionArena != null && regionDig != null && !(regionArena.contains(regionDig.getPos1()) && regionArena.contains(regionDig.getPos2()));
+        //Check if the regions are set
+        valid = valid && regionArena != null && regionDig != null;
+
+        //Check if the dig region is inside of the arena region
+        valid = valid && regionArena.contains(regionDig.getPos1()) && regionArena.contains(regionDig.getPos2());
 
         //Check if there are at least two player spawns.
         valid = valid && playerSpawns != null && playerSpawns.size() >= 2;
 
         //Check if the exit point exists
         valid = valid && exitPoint != null;
+
+        save();
 
         return valid;
     }
@@ -74,9 +93,12 @@ public class Arena {
             missing.add("The exit point is not defined!");
         }
 
-        return missing;
+        if (missing.size() == 0) {
+            return null;
+        } else {
+            return missing;
+        }
     }
-
 
     /**
      * Returns the Arena region.
@@ -114,7 +136,7 @@ public class Arena {
      * Gets the player spawns in a hashmap<String name, Vector location>.
      * @return The hashmap.
      */
-    public HashMap<String, Vector> getPlayerSpawns() {
+    public HashMap<String, Location> getPlayerSpawns() {
         return playerSpawns;
     }
 
@@ -122,7 +144,7 @@ public class Arena {
      * Sets the player spawn points.
      * @param playerSpawnPoints Set the spawn points as a hashmap<String name, Vector location>.
      */
-    public void setPlayerSpawns(HashMap<String, Vector> playerSpawnPoints) {
+    public void setPlayerSpawns(HashMap<String, Location> playerSpawnPoints) {
         this.playerSpawns = playerSpawnPoints;
     }
 
@@ -132,11 +154,12 @@ public class Arena {
      * @param location Location of the new spawn.
      * @return If the spawn was added.
      */
-    public boolean addPlayerSpawn(String spawnName, Vector location) {
+    public boolean addPlayerSpawn(String spawnName, Location location) {
 
         //Check if a spawn by that name already exists
         if (!playerSpawns.containsKey(spawnName.toLowerCase())) {
             playerSpawns.put(spawnName, location);
+            return true;
         }
         return false;
     }
@@ -145,7 +168,7 @@ public class Arena {
      * Returns the point players are teleported to when the Arena ends.
      * @return The exit point.
      */
-    public Vector getExitPoint() {
+    public Location getExitPoint() {
         return exitPoint;
     }
 
@@ -153,7 +176,7 @@ public class Arena {
      * Sets the point players are teleported to when the Arena ends.
      * @param exitTeleportPoint The exit point.
      */
-    public void setExitPoint(Vector exitTeleportPoint) {
+    public void setExitPoint(Location exitTeleportPoint) {
         this.exitPoint = exitTeleportPoint;
     }
 
@@ -166,6 +189,48 @@ public class Arena {
     }
 
     /**
+     * Saves this Arena to file.
+     */
+    public void save() {
+        FileConfiguration conf = getArenaConfig();
+
+        if (regionArena != null) {
+            conf.set("regions.arena", Serializer.cuboidToString(regionArena));
+        }
+
+        if (regionDig != null) {
+            conf.set("regions.dig", Serializer.cuboidToString(regionDig));
+        }
+
+        if (playerSpawns != null) {
+            for (String key : playerSpawns.keySet()) {
+                conf.set("spawns." + key, Serializer.locationToString(playerSpawns.get(key)));
+            }
+        }
+
+        if (exitPoint != null) {
+            conf.set("warps.exit", Serializer.locationToString(exitPoint));
+        }
+
+        try {
+            conf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Attempts to load settings for this Arena from file.
+     */
+    public void load() {
+        FileConfiguration conf = getArenaConfig();
+
+        regionArena = Serializer.stringToCuboid(conf.getString("regions.arena"));
+        regionArena = Serializer.stringToCuboid(conf.getString("regions.dig"));
+    }
+
+    /**
      * Sets the name of this Arena.
      * @param arenaName The new name.
      */
@@ -175,4 +240,46 @@ public class Arena {
         }
     }
 
+    /**
+     * Gets the FileConfiguration for this Arena.
+     * @return The configuration
+     */
+    public FileConfiguration getArenaConfig() {
+        if (arenaConfig == null) {
+            reloadArenaConfig();
+        }
+        return arenaConfig;
+    }
+
+    /**
+     * Saves the default configuration to file if it doesn't exist already.
+     */
+    public void saveDefaultConfig() {
+        if (arenaConfigFile == null) {
+            parent.getLogger().log(Level.INFO, "Saving to: " + parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml");
+            arenaConfigFile = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml");
+        }
+        if (!arenaConfigFile.exists()) {
+            parent.saveResource("arenas\\arenaConfig.yml", false);
+            File temp = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena.yml");
+            temp.renameTo(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
+        }
+    }
+
+    /**
+     * Reloads the Arena configuration from File.
+     */
+    public void reloadArenaConfig() {
+        if (arenaConfigFile == null) {
+            arenaConfigFile = new File(parent.getDataFolder(), "\\arenas\\arena_" + name + ".yml");
+        }
+        arenaConfig = YamlConfiguration.loadConfiguration(arenaConfigFile);
+
+        // Look for defaults in the jar
+        InputStream defConfigStream = parent.getResource("\\arenas\\arena.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            arenaConfig.setDefaults(defConfig);
+        }
+    }
 }
