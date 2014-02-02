@@ -14,13 +14,13 @@ public class ArenaManager {
     }
 
     /**
-     * Tries to add a new Arena by Name. This will automatically create a new instance of the Arena class.
+     * Tries to add a new Arena by name. This will automatically create a new instance of the Arena class.
      * @param name The name for the Arena
      * @return true if the arena was added, false if an arena by that name already exists
      */
     public boolean addArena(String name) {
         for (Arena ar : getArenas()) {
-            if (ar.getName().equals(name)) {
+            if (ar.getName().equalsIgnoreCase(name)) {
                 return false;
             }
         }
@@ -28,6 +28,20 @@ public class ArenaManager {
         return true;
     }
 
+    /**
+     * Tries to remove an Arena by name.
+     * @param name The Arena to remove.
+     * @return True if the arena was delete. False if it was not found.
+     */
+    public boolean deleteArena(String name) {
+        for (Arena ar : getArenas()) {
+            if (ar.getName().equalsIgnoreCase(name)) {
+                arenas.remove(ar);
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Returns the arena with a specific name or null if the arena does not exist.
@@ -36,7 +50,7 @@ public class ArenaManager {
      */
     public Arena getArena(String name) {
         for (Arena ar : getArenas()) {
-            if (ar.getName().equals(name)) {
+            if (ar.getName().equalsIgnoreCase(name)) {
                 return ar;
             }
         }
@@ -58,7 +72,7 @@ public class ArenaManager {
      */
     public boolean exists(String arenaName) {
         for (Arena ar : getArenas()) {
-            if (ar.getName().equals(arenaName)) {
+            if (ar.getName().equalsIgnoreCase(arenaName)) {
                 return true;
             }
         }
