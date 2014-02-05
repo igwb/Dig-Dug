@@ -6,7 +6,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 
 public class EventListener implements Listener {
 
-    DigDug parent;
+    private DigDug parent;
 
     /**
      * Creates an instance of EventListener.

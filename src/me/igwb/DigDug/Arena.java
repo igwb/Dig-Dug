@@ -55,6 +55,7 @@ public class Arena {
     private HashMap<String, Integer> scores;
     private ArrayList<BlockEffect> effects;
     private boolean editMode, running = true; //TODO: remove default true
+    private HashMap<String, ArenaScoreboard> scoreboards;
 
     /**
      * Creates a new instance of Arena.
@@ -74,6 +75,7 @@ public class Arena {
         scores = new HashMap<String, Integer>();
 
         effects = new ArrayList<BlockEffect>();
+        scoreboards = new HashMap<String, ArenaScoreboard>();
 
     }
 
@@ -458,7 +460,6 @@ public class Arena {
                     for (BlockEffect eff : effects) {
                         if (eff.getTriggerBlock().equals(e.getBlock().getType())) {
                             eff.execute(e.getPlayer(), this);
-                            e.getPlayer().sendMessage("Exectued effect " + eff.getTriggerBlock().toString());
                         }
                     }
 
@@ -488,6 +489,20 @@ public class Arena {
         return running;
     }
 
+    /**
+     * Adds the given amount of points to a player's score. The amount may be negative.
+     * @param player The player
+     * @param pointModifier The value to add to the score. Can be negative.
+     */
+    public void modifyPlayerPoints(String player, Integer pointModifier) {
+
+        scores.put(player, scores.get(player) + pointModifier);
+
+        scoreboards.get(player).setScore(scores.get(player));
+
+        //TODO: Fire score changed event
+    }
+
     /*
      * Players
      */
@@ -504,6 +519,8 @@ public class Arena {
             scores.put(playerName, 0);
 
             Bukkit.getServer().getPlayer(playerName).teleport(playerSpawns.get(playerSpawns.keySet().toArray()[players.size() - 1]));
+
+            scoreboards.put(playerName, new ArenaScoreboard(Bukkit.getServer().getPlayer(playerName)));
         }
     }
 
@@ -515,21 +532,5 @@ public class Arena {
 
         return players;
     }
-
-    /**
-     * Adds the given amount of points to a player's score. The amount may be negative.
-     * @param player The player
-     * @param pointModifier The value to add to the score. Can be negative.
-     */
-    public void modifyPlayerPoints(String player, Integer pointModifier) {
-
-        scores.put(player, scores.get(player) + pointModifier);
-
-        //TODO: Fire score changed event
-    }
-
-
-
-
 
 }

@@ -1,8 +1,6 @@
 package me.igwb.DigDug;
 
 import java.util.HashMap;
-import java.util.logging.Level;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -128,6 +126,7 @@ public class BlockEffect {
      * De-serializes a HashMap.
      * @param data The HashMap
      */
+    @SuppressWarnings("deprecation")
     private void deSerialize(HashMap<String, String> data) {
 
         name = data.get("name");
@@ -140,11 +139,5 @@ public class BlockEffect {
         pointValue = Integer.parseInt(data.get("points"));
 
         affected = Target.valueOf(data.get("affects"));
-
-        for (String string : data.keySet()) {
-            Bukkit.getServer().getLogger().log(Level.INFO, data.get(string));
-        }
-
-
     }
 }

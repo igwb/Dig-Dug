@@ -113,6 +113,10 @@ public class ArenaManager {
         return false;
     }
 
+    /**
+     * Notifies all valid arenas of a block break event.
+     * @param e The event.
+     */
     public void notifyArenasOfBlockBreak(BlockBreakEvent e) {
 
         for (Arena ar : getArenas()) {
