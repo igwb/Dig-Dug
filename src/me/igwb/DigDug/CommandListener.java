@@ -1,6 +1,8 @@
 package me.igwb.DigDug;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -93,6 +95,10 @@ public class CommandListener implements CommandExecutor {
                 case "list":
 
                     listArenas(pSender);
+                    break;
+                case "join":
+
+                    //TODO: Add functionality
                     break;
                 default:
                     break;

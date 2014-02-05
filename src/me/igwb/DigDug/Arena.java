@@ -38,6 +38,9 @@ public class Arena {
 
     private String name;
 
+    private ArrayList<String> players;
+    private HashMap<String, Integer> scores;
+
     /**
      * Creates a new instance of Arena.
      * @param parentPlugin Instance of the DigDug plugin.
@@ -51,7 +54,14 @@ public class Arena {
 
         blocksChances = new ArrayList<BlockChance>();
         blocksChances.add(new BlockChance(new BaseBlock(7), 100.0));
+
+        players = new ArrayList<>();
+        scores = new HashMap<String, Integer>();
     }
+
+    /*
+     * Getters
+     */
 
     /**
      * Checks if this arena is valid and if it can run a game.
@@ -123,14 +133,6 @@ public class Arena {
     }
 
     /**
-     * Sets a new Arena region.
-     * @param rgArena The region.
-     */
-    public void setRegionArena(CuboidRegion rgArena) {
-        this.regionArena = rgArena;
-    }
-
-    /**
      * Returns the dig region.
      * @return The region.
      */
@@ -139,19 +141,47 @@ public class Arena {
     }
 
     /**
-     * Sets a new dig region.
-     * @param rgDig The region.
-     */
-    public void setRegionDig(CuboidRegion rgDig) {
-        this.regionDig = rgDig;
-    }
-
-    /**
      * Gets the player spawns in a hashmap<String name, Vector location>.
      * @return The hashmap.
      */
     public HashMap<String, Location> getPlayerSpawns() {
         return playerSpawns;
+    }
+
+    /**
+     * Returns the point players are teleported to when the Arena ends.
+     * @return The exit point.
+     */
+    public Location getExitPoint() {
+        return exitPoint;
+    }
+
+    /**
+     * Returns the name of this Arena.
+     * @return The name.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /*
+     * Setters
+     */
+
+    /**
+     * Sets a new Arena region.
+     * @param rgArena The region.
+     */
+    public void setRegionArena(CuboidRegion rgArena) {
+        this.regionArena = rgArena;
+    }
+
+    /**
+     * Sets a new dig region.
+     * @param rgDig The region.
+     */
+    public void setRegionDig(CuboidRegion rgDig) {
+        this.regionDig = rgDig;
     }
 
     /**
@@ -179,14 +209,6 @@ public class Arena {
     }
 
     /**
-     * Returns the point players are teleported to when the Arena ends.
-     * @return The exit point.
-     */
-    public Location getExitPoint() {
-        return exitPoint;
-    }
-
-    /**
      * Sets the point players are teleported to when the Arena ends.
      * @param exitTeleportPoint The exit point.
      */
@@ -194,13 +216,9 @@ public class Arena {
         this.exitPoint = exitTeleportPoint;
     }
 
-    /**
-     * Returns the name of this Arena.
-     * @return The name.
+    /*
+     * Saving and loading
      */
-    public String getName() {
-        return name;
-    }
 
     /**
      * Saves this Arena to file.
@@ -267,16 +285,6 @@ public class Arena {
     }
 
     /**
-     * Sets the name of this Arena.
-     * @param arenaName The new name.
-     */
-    public void setName(String arenaName) {
-        if (arenaName != null) {
-            name = arenaName;
-        }
-    }
-
-    /**
      * Gets the FileConfiguration for this Arena.
      * @return The configuration
      */
@@ -319,6 +327,10 @@ public class Arena {
         }
     }
 
+    /*
+     * Game mechanics
+     */
+
     /**
      * Regenerates the dig region of this Arena.
      * The Arena must be valid.
@@ -343,4 +355,45 @@ public class Arena {
             current.setType(Material.getMaterial((rndFill.next(currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ()).getType())));
         }
     }
+
+    /*
+     * Players
+     */
+
+    /**
+     * Adds a player to the players in the arena. This will teleport him to the arena.
+     * @param playerName The player that wants to join.
+     */
+    public void joinPlayer(String playerName) {
+
+        if (!players.contains(playerName)) {
+            players.add(playerName);
+
+            scores.put(playerName, 0);
+
+            //TODO: Teleport the player to the arena!
+        }
+    }
+
+    /**
+     * Returns an ArrayList of all players currently in the arena.
+     * @return The ArrayList.
+     */
+    public ArrayList<String> getPlayers() {
+
+        return players;
+    }
+
+    /**
+     * Adds the given amount of points to a player's score. The amount may be negative.
+     * @param player The player
+     * @param pointModifier The value to add to the score. Can be negative.
+     */
+    public void modifyPlayerPoints(String player, Integer pointModifier) {
+
+        scores.put(player, scores.get(player) + pointModifier);
+
+        //TODO: Fire score changed event
+    }
+
 }
