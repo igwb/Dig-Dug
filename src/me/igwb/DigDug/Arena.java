@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -15,6 +16,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.sk89q.worldedit.BlockVector;
 import com.sk89q.worldedit.blocks.BaseBlock;
@@ -23,23 +26,32 @@ import com.sk89q.worldedit.patterns.RandomFillPattern;
 import com.sk89q.worldedit.regions.CuboidRegion;
 
 public class Arena {
+
+    //Configurations
     private FileConfiguration arenaConfig = null;
     private File arenaConfigFile = null;
 
+    //Utility
     private DigDug parent;
 
+    //Regions
     private CuboidRegion regionArena;
     private CuboidRegion regionDig;
 
+    //Warps
     private HashMap<String, Location> playerSpawns;
     private Location exitPoint;
 
+    //Regeneration
     private ArrayList<BlockChance> blocksChances;
 
+    //Informational
     private String name;
 
+    //Game Mechanics
     private ArrayList<String> players;
     private HashMap<String, Integer> scores;
+    private ArrayList<BlockEffect> effects;
 
     /**
      * Creates a new instance of Arena.
@@ -57,6 +69,9 @@ public class Arena {
 
         players = new ArrayList<>();
         scores = new HashMap<String, Integer>();
+
+        effects = new ArrayList<BlockEffect>();
+
     }
 
     /*
@@ -81,8 +96,6 @@ public class Arena {
 
         //Check if the exit point exists
         valid = valid && exitPoint != null;
-
-        save();
 
         return valid;
     }
@@ -164,6 +177,18 @@ public class Arena {
         return name;
     }
 
+    /**
+     * Gets the number of players that can play in this arena. Equals the number of playerSpawns
+     * @return Max players count.
+     */
+    public Integer getMaxPlayers() {
+
+        if (playerSpawns != null) {
+            return playerSpawns.size();
+        }
+        return 0;
+    }
+
     /*
      * Setters
      */
@@ -174,6 +199,8 @@ public class Arena {
      */
     public void setRegionArena(CuboidRegion rgArena) {
         this.regionArena = rgArena;
+
+        save();
     }
 
     /**
@@ -182,6 +209,8 @@ public class Arena {
      */
     public void setRegionDig(CuboidRegion rgDig) {
         this.regionDig = rgDig;
+
+        save();
     }
 
     /**
@@ -190,6 +219,8 @@ public class Arena {
      */
     public void setPlayerSpawns(HashMap<String, Location> playerSpawnPoints) {
         this.playerSpawns = playerSpawnPoints;
+
+        save();
     }
 
     /**
@@ -203,6 +234,8 @@ public class Arena {
         //Check if a spawn by that name already exists
         if (!playerSpawns.containsKey(spawnName.toLowerCase())) {
             playerSpawns.put(spawnName, location);
+
+            save();
             return true;
         }
         return false;
@@ -214,6 +247,8 @@ public class Arena {
      */
     public void setExitPoint(Location exitTeleportPoint) {
         this.exitPoint = exitTeleportPoint;
+
+        save();
     }
 
     /*
@@ -223,9 +258,11 @@ public class Arena {
     /**
      * Saves this Arena to file.
      */
+    @SuppressWarnings("deprecation")
     public void save() {
         FileConfiguration conf = getArenaConfig();
 
+        //Save the regions
         if (regionArena != null) {
             conf.set("regions.arena", Serializer.cuboidToString(regionArena));
         }
@@ -234,22 +271,38 @@ public class Arena {
             conf.set("regions.dig", Serializer.cuboidToString(regionDig));
         }
 
+        //Save the spawns
         if (playerSpawns != null) {
             for (String key : playerSpawns.keySet()) {
                 conf.set("spawns." + key, Serializer.locationToString(playerSpawns.get(key)));
             }
         }
-
+        //Save the exit warp
         if (exitPoint != null) {
             conf.set("warps.exit", Serializer.locationToString(exitPoint));
         }
 
+        //Save the DigRegion's composition
         ArrayList<String> chanceStrings = new ArrayList<String>();
         for (BlockChance bc : blocksChances) {
             chanceStrings.add(Serializer.blockChanceToString(bc));
         }
 
         conf.set("blocks", chanceStrings);
+
+        //Save the effects
+        if (effects == null || effects.size() == 0) {
+            effects.add(new BlockEffect("example", Material.HARD_CLAY, new PotionEffect(PotionEffectType.BLINDNESS, 20, 1), 5, BlockEffect.Target.all_but_trigger));
+        }
+
+        HashMap<String, HashMap<String, String>> effectList = new HashMap<String, HashMap<String, String>>();
+
+        HashMap<String, String> map;
+        for (BlockEffect eff : effects) {
+            map = eff.serialize();
+            effectList.put(((Integer) eff.getTriggerBlock().getId()).toString(), eff.serialize());
+            conf.createSection("effects." + map.get("block") + "." + map.get("name"), map);
+        }
 
         try {
             conf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
@@ -265,15 +318,20 @@ public class Arena {
     public void load() {
         FileConfiguration conf = getArenaConfig();
 
+        //Load the regions
         regionArena = Serializer.stringToCuboid(conf.getString("regions.arena"));
         regionDig = Serializer.stringToCuboid(conf.getString("regions.dig"));
 
+        //Load the spawns
         HashMap<String, Object> spawnsRead = (HashMap<String, Object>) conf.getConfigurationSection("spawns").getValues(false);
         for (String key : spawnsRead.keySet()) {
             playerSpawns.put(key, Serializer.stringToLocation((String) spawnsRead.get(key)));
         }
 
+        //Load the exit warp
+        exitPoint = Serializer.stringToLocation(conf.getString("warps.exit"));
 
+        //Load the DigRegion composition
         @SuppressWarnings("unchecked")
         ArrayList<String> chanceStrings = (ArrayList<String>) conf.get("blocks");
         blocksChances.clear();
@@ -281,7 +339,28 @@ public class Arena {
             blocksChances.add(Serializer.stringToBlockChance(cs));
         }
 
-        exitPoint = Serializer.stringToLocation(conf.getString("warps.exit"));
+        //Load the effects
+        Object[] blocks = conf.getConfigurationSection("effects").getKeys(false).toArray();
+        Object[] blockEffects;
+        Map<String, Object> map;
+        HashMap<String, String> stringMap = new HashMap<String, String>();
+
+        for (Object block : blocks) {
+            blockEffects = conf.getConfigurationSection("effects." + block).getKeys(false).toArray();
+            for (Object effectName : blockEffects) {
+                map = conf.getConfigurationSection("effects." + block + "." + effectName).getValues(false);
+
+                stringMap.clear();
+                Bukkit.getServer().getLogger().log(Level.INFO, (String) effectName);
+                for (String key : map.keySet()) {
+                    Bukkit.getServer().getLogger().log(Level.INFO, key + ", " + map.get(key));
+                    stringMap.put(key, (String) map.get(key));
+                }
+
+                effects.add(new BlockEffect(stringMap));
+            }
+        }
+
     }
 
     /**
@@ -335,6 +414,7 @@ public class Arena {
      * Regenerates the dig region of this Arena.
      * The Arena must be valid.
      */
+    @SuppressWarnings("deprecation")
     public void regenerateDigRegion() {
 
         //Is the arena valid?
@@ -366,12 +446,12 @@ public class Arena {
      */
     public void joinPlayer(String playerName) {
 
-        if (!players.contains(playerName)) {
+        if (!players.contains(playerName) && players.size() < getMaxPlayers()) {
             players.add(playerName);
 
             scores.put(playerName, 0);
 
-            //TODO: Teleport the player to the arena!
+            Bukkit.getServer().getPlayer(playerName).teleport(playerSpawns.get(playerSpawns.keySet().toArray()[players.size() - 1]));
         }
     }
 

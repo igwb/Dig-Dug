@@ -1,8 +1,5 @@
 package me.igwb.DigDug;
 import java.util.ArrayList;
-import java.util.logging.Level;
-
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -97,7 +94,10 @@ public class CommandListener implements CommandExecutor {
                     listArenas(pSender);
                     break;
                 case "join":
-
+                    if (args.length >= 2) {
+                        String arenaName = args[1];
+                        parent.getArenaManager().getArena(arenaName).joinPlayer(pSender.getName());
+                    }
                     //TODO: Add functionality
                     break;
                 default:
@@ -111,7 +111,6 @@ public class CommandListener implements CommandExecutor {
         }
         return true;
     }
-
 
     /**
      * Sends a list of all known arenas to the Player supplied.

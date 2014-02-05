@@ -11,13 +11,7 @@ import com.sk89q.worldedit.bukkit.BukkitUtil;
 import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.regions.CuboidRegion;
 
-public final class Serializer {
-
-    /**
-     * Do not call this constructor.
-     */
-    private Serializer() {
-    }
+public abstract class Serializer {
 
     /**
      * Serialize a WorldEdit cuboid.
