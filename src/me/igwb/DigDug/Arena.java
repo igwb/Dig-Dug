@@ -16,10 +16,12 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.patterns.BlockChance;
 import com.sk89q.worldedit.patterns.RandomFillPattern;
@@ -52,6 +54,7 @@ public class Arena {
     private ArrayList<String> players;
     private HashMap<String, Integer> scores;
     private ArrayList<BlockEffect> effects;
+    private boolean editMode, running = true; //TODO: remove default true
 
     /**
      * Creates a new instance of Arena.
@@ -351,9 +354,9 @@ public class Arena {
                 map = conf.getConfigurationSection("effects." + block + "." + effectName).getValues(false);
 
                 stringMap.clear();
-                Bukkit.getServer().getLogger().log(Level.INFO, (String) effectName);
+                //Bukkit.getServer().getLogger().log(Level.INFO, (String) effectName);
                 for (String key : map.keySet()) {
-                    Bukkit.getServer().getLogger().log(Level.INFO, key + ", " + map.get(key));
+                    // Bukkit.getServer().getLogger().log(Level.INFO, key + ", " + map.get(key));
                     stringMap.put(key, (String) map.get(key));
                 }
 
@@ -436,6 +439,55 @@ public class Arena {
         }
     }
 
+    /**
+     * Called on a BlockBreakEvent.
+     * @param e the event
+     */
+    public void notifyOfBlockBreak(BlockBreakEvent e) {
+
+        Location blockLocation =  e.getBlock().getLocation();
+
+        //Check if the block is inside of this arena
+        if (regionArena.contains(new Vector(blockLocation.getBlockX(), blockLocation.getBlockY(), blockLocation.getBlockZ()))) {
+
+            //Check if the block is inside of the dig region
+            if (regionDig.contains(new Vector(blockLocation.getBlockX(), blockLocation.getBlockY(), blockLocation.getBlockZ()))) {
+                if (isRunning()) {
+
+                    //Execute effects
+                    for (BlockEffect eff : effects) {
+                        if (eff.getTriggerBlock().equals(e.getBlock().getType())) {
+                            eff.execute(e.getPlayer(), this);
+                            e.getPlayer().sendMessage("Exectued effect " + eff.getTriggerBlock().toString());
+                        }
+                    }
+
+                    //Prevent drops
+                    e.setExpToDrop(0);
+                    e.setCancelled(true);
+                    e.getBlock().setType(Material.AIR);
+                }
+            } else {
+                //Cancel if the block is inside of the arena and outside of the dig region.
+                if (!editMode) {
+                    e.getPlayer().sendMessage("You are not allowed to destroy the arena!");
+                    e.setCancelled(true);
+                }
+            }
+        }
+
+
+    }
+
+    /**
+     * Returns if the arena is running.
+     * @return Is it running?
+     */
+    public boolean isRunning() {
+
+        return running;
+    }
+
     /*
      * Players
      */
@@ -475,5 +527,9 @@ public class Arena {
 
         //TODO: Fire score changed event
     }
+
+
+
+
 
 }

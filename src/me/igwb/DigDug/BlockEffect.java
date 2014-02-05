@@ -1,6 +1,7 @@
 package me.igwb.DigDug;
 
 import java.util.HashMap;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -44,6 +45,7 @@ public class BlockEffect {
      * @param data The HashMap<String, String>.
      */
     public BlockEffect(HashMap<String, String> data) {
+
         deSerialize(data);
     }
 
@@ -128,7 +130,9 @@ public class BlockEffect {
      */
     private void deSerialize(HashMap<String, String> data) {
 
-        triggerBlock = Material.getMaterial(data.get("block"));
+        name = data.get("name");
+
+        triggerBlock = Material.getMaterial(Integer.parseInt(data.get("block")));
 
         String[] split = data.get("potion").split(",");
         potionEffect = new PotionEffect(PotionEffectType.getByName(split[0]), Integer.parseInt(split[1]), 1);
@@ -136,5 +140,11 @@ public class BlockEffect {
         pointValue = Integer.parseInt(data.get("points"));
 
         affected = Target.valueOf(data.get("affects"));
+
+        for (String string : data.keySet()) {
+            Bukkit.getServer().getLogger().log(Level.INFO, data.get(string));
+        }
+
+
     }
 }

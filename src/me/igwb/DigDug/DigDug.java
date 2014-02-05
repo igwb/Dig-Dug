@@ -11,6 +11,7 @@ public class DigDug extends JavaPlugin {
 
     private WorldEditPlugin worldEditPlugin;
     private CommandListener myCommandListener;
+    private EventListener eventListener;
     private ArenaManager myArenaManager;
 
     /**
@@ -30,6 +31,9 @@ public class DigDug extends JavaPlugin {
         myCommandListener = new CommandListener(this);
         registerCommands();
 
+        eventListener = new EventListener(this);
+        registerEvents();
+
         myArenaManager = new ArenaManager();
         myArenaManager.loadArenas(this);
     }
@@ -47,6 +51,14 @@ public class DigDug extends JavaPlugin {
     private void registerCommands() {
         this.getCommand("digdug").setExecutor(myCommandListener);
         this.getCommand("dd").setExecutor(myCommandListener);
+    }
+
+    /**
+     * Registers the events with bukkit.
+     */
+    private void registerEvents() {
+
+        getServer().getPluginManager().registerEvents(eventListener, this);
     }
 
     /**

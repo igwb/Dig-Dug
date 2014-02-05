@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
+import org.bukkit.event.block.BlockBreakEvent;
+
 public class ArenaManager {
 
     private ArrayList<Arena> arenas;
@@ -109,5 +111,14 @@ public class ArenaManager {
             }
         }
         return false;
+    }
+
+    public void notifyArenasOfBlockBreak(BlockBreakEvent e) {
+
+        for (Arena ar : getArenas()) {
+            if (ar.isValid()) {
+                ar.notifyOfBlockBreak(e);
+            }
+        }
     }
 }
