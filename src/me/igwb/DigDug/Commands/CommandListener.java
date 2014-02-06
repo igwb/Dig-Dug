@@ -1,5 +1,9 @@
-package me.igwb.DigDug;
+package me.igwb.DigDug.Commands;
 import java.util.ArrayList;
+
+import me.igwb.DigDug.Arena;
+import me.igwb.DigDug.DigDug;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;

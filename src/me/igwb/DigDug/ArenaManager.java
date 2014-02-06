@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 
 public class ArenaManager {
 
@@ -114,7 +115,7 @@ public class ArenaManager {
     }
 
     /**
-     * Notifies all valid arenas of a block break event.
+     * Notifies all valid arenas of a BlockBreakEvent.
      * @param e The event.
      */
     public void notifyArenasOfBlockBreak(BlockBreakEvent e) {
@@ -122,6 +123,19 @@ public class ArenaManager {
         for (Arena ar : getArenas()) {
             if (ar.isValid()) {
                 ar.notifyOfBlockBreak(e);
+            }
+        }
+    }
+
+
+    /**
+     * Notifies all valid and running arenas of a PlayerMoveEvent.
+     * @param e The event.
+     */
+    public void notifyArenasOfPlayerMove(PlayerMoveEvent e) {
+        for (Arena ar : getArenas()) {
+            if (ar.isValid()) {
+                ar.notifyOfPlayerMove(e);
             }
         }
     }

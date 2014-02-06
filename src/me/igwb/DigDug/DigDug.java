@@ -2,6 +2,8 @@ package me.igwb.DigDug;
 
 import java.util.logging.Level;
 
+import me.igwb.DigDug.Commands.CommandListener;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;

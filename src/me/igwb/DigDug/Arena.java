@@ -23,6 +23,7 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -56,12 +57,20 @@ public class Arena {
     //Informational
     private String name;
 
+
     //Game Mechanics
     private ArrayList<String> players;
+    private HashMap<String, Location> playerSpecificSpawns;
     private HashMap<String, Integer> scores;
+
     private ArrayList<BlockEffect> effects;
-    private boolean editMode, running = true; //TODO: remove default true
+    private boolean editMode = false, running = false;
     private HashMap<String, ArenaScoreboard> scoreboards;
+
+    private Integer minPlayers;
+    private Integer autoStartTimer;
+    private Integer gameDuration;
+    private Integer startTime;
 
     /**
      * Creates a new instance of Arena.
@@ -77,6 +86,7 @@ public class Arena {
         blocksChances = new ArrayList<BlockChance>();
 
         players = new ArrayList<>();
+        playerSpecificSpawns = new HashMap<String, Location>();
         scores = new HashMap<String, Integer>();
 
         effects = new ArrayList<BlockEffect>();
@@ -272,6 +282,24 @@ public class Arena {
     public void save() {
         FileConfiguration conf = getArenaConfig();
 
+        //Save the times
+        if (autoStartTimer == null) {
+            autoStartTimer = 20;
+        }
+        conf.set("time.autoStart", autoStartTimer);
+
+        if (gameDuration == null) {
+            gameDuration = 120;
+        }
+        conf.set("time.gameTime", gameDuration);
+
+        //Save minPlayers
+        if (minPlayers == null) {
+            minPlayers = 1;
+        }
+        conf.set("minPlayers", minPlayers);
+
+
         //Save the regions
         if (regionArena != null) {
             conf.set("regions.arena", Serializer.cuboidToString(regionArena));
@@ -330,6 +358,14 @@ public class Arena {
     @SuppressWarnings("deprecation")
     public void load() {
         FileConfiguration conf = getArenaConfig();
+
+        //Load the times
+        autoStartTimer = (Integer) conf.get("time.autoStart");
+        gameDuration =  (Integer) conf.get("time.gameTime");
+
+        //Load minPlayers
+        minPlayers = (Integer) conf.get("minPlayers");
+
 
         //Load the regions
         regionArena = Serializer.stringToCuboid(conf.getString("regions.arena"));
@@ -511,6 +547,9 @@ public class Arena {
                     e.setExpToDrop(0);
                     e.setCancelled(true);
                     e.getBlock().setType(Material.AIR);
+                } else {
+                    e.setCancelled(true);
+                    e.getPlayer().sendMessage("There is no game in progress!");
                 }
             } else {
                 //Cancel if the block is inside of the arena and outside of the dig region.
@@ -522,6 +561,38 @@ public class Arena {
         }
 
 
+    }
+
+    /**
+     * Called on a PlayerMoveEvent.
+     * @param e The event.
+     */
+    public void notifyOfPlayerMove(PlayerMoveEvent e) {
+
+        Location locTo = e.getTo();
+        Location pSpawn;
+
+        //Prevent players from leaving their spawn before the game starts.
+        if (!isRunning() && players.contains(e.getPlayer().getName())) {
+            pSpawn = playerSpecificSpawns.get(e.getPlayer().getName());
+
+            //Return if the player is still standing on his spawn.
+            if (locTo.getX() == pSpawn.getX() && locTo.getY() == pSpawn.getY() && locTo.getZ() == pSpawn.getZ()) {
+                return;
+            } else {
+                //Teleport the player back to his spawn.
+                e.setCancelled(true);
+                e.getPlayer().teleport(new Location(pSpawn.getWorld(), pSpawn.getX(), pSpawn.getY(), pSpawn.getZ()));
+                e.getPlayer().teleport(playerSpecificSpawns.get(e.getPlayer().getName()));
+                e.getPlayer().sendMessage("You can not move until the game starts!");
+                return;
+            }
+        }
+
+        if (isRunning() && !regionArena.contains(new Vector(locTo.getBlockX(), locTo.getBlockY(), locTo.getBlockZ()))) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage("You can not leave the arena while it is running!");
+        }
     }
 
     /**
@@ -547,6 +618,95 @@ public class Arena {
         //TODO: Fire score changed event
     }
 
+    /**
+     * Counts down and then starts the game.
+     */
+    private void startGameCountdown() {
+
+        parent.getServer().getScheduler().scheduleSyncDelayedTask(parent, new Runnable() {
+            @Override
+            public void run() {
+                if (!isRunning() && players.size() >= minPlayers) {
+                    startGame();
+                }
+                startGame();
+            }
+        }, autoStartTimer * 20L);
+    }
+
+    /**
+     * Starts the end countdown.
+     */
+    private void startEndCountDown() {
+
+        parent.getServer().getScheduler().scheduleSyncDelayedTask(parent, new Runnable() {
+            @Override
+            public void run() {
+                endGame();
+            }
+        }, gameDuration * 20L);
+    }
+
+    /**
+     * Starts the game.
+     */
+    public void startGame() {
+
+        running = true;
+
+        for (String p : players) {
+            Bukkit.getServer().getPlayer(p).sendMessage("Ready! Set! Mine!");
+
+            scoreboards.put(p, new ArenaScoreboard(Bukkit.getServer().getPlayer(p)));
+        }
+
+        startTime = (int) System.currentTimeMillis();
+
+        startAutoScoreboards();
+        startEndCountDown();
+
+    }
+
+    /**
+     * Automatically updates the scoreboards until the game ends.
+     */
+    private void startAutoScoreboards() {
+        final  Integer remainingTime = ((gameDuration * 1000) - (((int) System.currentTimeMillis()) - startTime)) / 1000;
+        if (remainingTime > 0 && isRunning()) {
+            parent.getServer().getScheduler().scheduleSyncDelayedTask(parent, new Runnable() {
+                @Override
+                public void run() {
+                    for (String p : scoreboards.keySet()) {
+
+                        scoreboards.get(p).setTimeRemaining(remainingTime);
+                    }
+                    startAutoScoreboards();
+                }
+            },  20L);
+        }
+
+    }
+
+    /**
+     * Ends a game.
+     */
+    public void endGame() {
+
+        for (String p : players) {
+
+            leavePlayer(p);
+        }
+
+        players.clear();
+        scores.clear();
+        scoreboards.clear();
+        playerSpecificSpawns.clear();
+
+        regenerateDigRegion();
+
+        running = false;
+    }
+
     /*
      * Players
      */
@@ -562,10 +722,33 @@ public class Arena {
 
             scores.put(playerName, 0);
 
-            Bukkit.getServer().getPlayer(playerName).teleport(playerSpawns.get(playerSpawns.keySet().toArray()[players.size() - 1]));
+            playerSpecificSpawns.put(playerName, playerSpawns.get(playerSpawns.keySet().toArray()[players.size() - 1]));
 
-            scoreboards.put(playerName, new ArenaScoreboard(Bukkit.getServer().getPlayer(playerName)));
+            telportPlayerToSpawn(playerName);
+
+            startGameCountdown();
         }
+    }
+
+    /**
+     * Teleports a player to his playerSpawn.
+     * @param playerName The player
+     */
+    private void telportPlayerToSpawn(String playerName) {
+
+        Bukkit.getServer().getPlayer(playerName).teleport(playerSpecificSpawns.get(playerName));
+
+    }
+
+    /**
+     * Makes a player leave the arena. Makes him teleport to the exit point.
+     * @param playerName The player.
+     */
+    public void leavePlayer(String playerName) {
+
+        Bukkit.getServer().getPlayer(playerName).teleport(exitPoint);
+        Bukkit.getServer().getPlayer(playerName).sendMessage("You have scored " + scores.get(playerName) + " points!");
+        scoreboards.get(playerName).remove();
     }
 
     /**
@@ -576,5 +759,7 @@ public class Arena {
 
         return players;
     }
+
+
 
 }

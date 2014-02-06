@@ -12,10 +12,10 @@ public class ArenaScoreboard {
 
     private Scoreboard board;
     private Objective objectivePoints;
-    private Score score;
+    private Score score, time;
 
     private Player player;
-    private Integer points;
+    private Integer points, timeRemaining = 1337;
 
 
     /**
@@ -26,16 +26,20 @@ public class ArenaScoreboard {
 
         player = p;
         points = 0;
+        timeRemaining = 0;
 
         board = Bukkit.getScoreboardManager().getNewScoreboard();
 
         objectivePoints = board.registerNewObjective("points", "dummy");
 
         objectivePoints.setDisplaySlot(DisplaySlot.SIDEBAR);
-        objectivePoints.setDisplayName(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "Points");
+        objectivePoints.setDisplayName(ChatColor.GREEN.toString() + ChatColor.UNDERLINE.toString() + "DigDug");
 
-        score = objectivePoints.getScore(Bukkit.getOfflinePlayer(ChatColor.GREEN.toString()));
+        score = objectivePoints.getScore(Bukkit.getOfflinePlayer(ChatColor.GREEN.toString() + "Score"));
         score.setScore(points);
+
+        time = objectivePoints.getScore(Bukkit.getOfflinePlayer(ChatColor.GREEN.toString() + "Time"));
+        time.setScore(timeRemaining);
 
         p.setScoreboard(board);
     }
@@ -56,5 +60,15 @@ public class ArenaScoreboard {
     public void remove() {
 
         player.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+    }
+
+    /**
+     * Updates the remaining game time.
+     * @param seconds Remaining time in seconds.
+     */
+    public void setTimeRemaining(Integer seconds) {
+
+        timeRemaining = seconds;
+        time.setScore(timeRemaining);
     }
 }
