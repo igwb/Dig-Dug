@@ -1,8 +1,6 @@
 package me.igwb.DigDug.Effects;
 
 import java.util.HashMap;
-import java.util.logging.Level;
-
 import me.igwb.DigDug.Arena;
 
 import org.bukkit.Bukkit;
@@ -125,7 +123,6 @@ public abstract class BlockEffect {
         HashMap<String, String> data = new HashMap<String, String>();
 
         data.put("affects", affected.name());
-        Bukkit.getServer().getLogger().log(Level.INFO, "blockeffect " + dataValue);
         return new SerializedBlockEffect(triggerBlock, dataValue, id, data);
     }
 }

@@ -82,6 +82,10 @@ public class CommandListener implements CommandExecutor {
                         case "regen":
                             parent.getArenaManager().getArena(arenaName).regenerateDigRegion();
                             break;
+                        case "load":
+                            parent.getArenaManager().getArena(arenaName).reloadArenaConfig();
+                            parent.getArenaManager().getArena(arenaName).load();
+                            break;
                         default:
                             break;
                         }

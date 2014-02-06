@@ -27,7 +27,8 @@ public class BlockEffectPotion extends BlockEffect {
         super(trigger, blockDataValue, effectId, targets);
 
         potionEffect = effect;
-        maxDuration = maxTime;
+        //Multiply by 20 to match ticks rather than seconds
+        maxDuration = maxTime * 20;
     }
 
     /**
@@ -40,9 +41,11 @@ public class BlockEffectPotion extends BlockEffect {
 
         HashMap<String, String> data = serializedEffect.getData();
 
-        //Muliply duration with 20 to match ticks, rather than seconds.
+        //Multiply duration with 20 to match ticks, rather than seconds.
         potionEffect = new PotionEffect(PotionEffectType.getByName(data.get("effect")), Integer.parseInt(data.get("duration")) * 20, Integer.parseInt(data.get("amplifier")));
-        maxDuration = Integer.parseInt(data.get("maxDuration"));
+
+        //Multiply duration with 20 to match ticks, rather than seconds.
+        maxDuration = Integer.parseInt(data.get("maxDuration")) * 20;
     }
 
     /**
@@ -53,6 +56,19 @@ public class BlockEffectPotion extends BlockEffect {
     @Override
     protected void applyEffects(Player p, Arena arena) {
 
+        //Check if the player already has this effect applied and extends it's duration if possible.
+        PotionEffect[] active = p.getActivePotionEffects().toArray(new PotionEffect[p.getActivePotionEffects().size()]);
+        PotionEffect newEffect;
+
+        for (PotionEffect eff : active) {
+            if (eff.getType().equals(potionEffect.getType())) {
+                newEffect = new PotionEffect(potionEffect.getType(), Math.min(eff.getDuration() + potionEffect.getDuration(), maxDuration), potionEffect.getAmplifier());
+                p.addPotionEffect(newEffect, true);
+            }
+            return;
+        }
+
+        //Add the effect to the player if he doesn't have it already.
         p.addPotionEffect(potionEffect, true);
     }
 
@@ -69,7 +85,8 @@ public class BlockEffectPotion extends BlockEffect {
         result.addData("effect", potionEffect.getType().getName());
         //Divide by 20 to match seconds rather than ticks.
         result.addData("duration", ((Integer) (potionEffect.getDuration() / 20)).toString());
-        result.addData("maxDuration", maxDuration.toString());
+        //Divide by 20 to match seconds rather than ticks.
+        result.addData("maxDuration", ((Integer) (maxDuration / 20)).toString());
         result.addData("amplifier", ((Integer) potionEffect.getAmplifier()).toString());
 
         return result;

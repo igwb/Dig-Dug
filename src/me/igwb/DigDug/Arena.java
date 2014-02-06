@@ -75,7 +75,6 @@ public class Arena {
         playerSpawns = new HashMap<String, Location>();
 
         blocksChances = new ArrayList<BlockChance>();
-        blocksChances.add(new BlockChance(new BaseBlock(7), 100.0));
 
         players = new ArrayList<>();
         scores = new HashMap<String, Integer>();
@@ -294,12 +293,12 @@ public class Arena {
         }
 
         //Save the DigRegion's composition
-        ArrayList<String> chanceStrings = new ArrayList<String>();
+        HashMap<String, String> chances = new HashMap<String, String>();
         for (BlockChance bc : blocksChances) {
-            chanceStrings.add(Serializer.blockChanceToString(bc));
+            chances.put(bc.getBlock().getId() + ":" + bc.getBlock().getData(), bc.getChance() + "%");
         }
 
-        conf.set("blocks", chanceStrings);
+        conf.createSection("blocks", chances);
 
         //Save the effects
 
@@ -309,20 +308,12 @@ public class Arena {
             effects.add(new BlockEffectPotion(Material.COAL_ORE, 0, 1, Target.trigger, new PotionEffect(PotionEffectType.BLINDNESS, 120, 1), 20));
         }
 
-        //HashMap<String, HashMap<String, String>> effectList = new HashMap<String, HashMap<String, String>>();
-
-        // HashMap<String, String> map;
         SerializedBlockEffect current;
 
         for (BlockEffect eff : effects) {
 
             current = eff.serialize();
-            conf.createSection("effects." +  current.getBlockType().getId() + "#" + current.getBlockDataValue() + "." + current.getId(), current.getData());
-
-            /*
-            map = eff.serialize().getData();
-            effectList.put(((Integer) eff.getTriggerBlock().getId()).toString(), eff.serialize());
-            conf.createSection("effects." + map.get("block") + "." + map.get("name"), map);*/
+            conf.createSection("effects." +  current.getBlockType().getId() + ":" + current.getBlockDataValue() + "." + current.getId(), current.getData());
         }
 
         try {
@@ -345,6 +336,8 @@ public class Arena {
         regionDig = Serializer.stringToCuboid(conf.getString("regions.dig"));
 
         //Load the spawns
+        playerSpawns.clear();
+
         HashMap<String, Object> spawnsRead = (HashMap<String, Object>) conf.getConfigurationSection("spawns").getValues(false);
         for (String key : spawnsRead.keySet()) {
             playerSpawns.put(key, Serializer.stringToLocation((String) spawnsRead.get(key)));
@@ -354,17 +347,27 @@ public class Arena {
         exitPoint = Serializer.stringToLocation(conf.getString("warps.exit"));
 
         //Load the DigRegion composition
-        @SuppressWarnings("unchecked")
-        ArrayList<String> chanceStrings = (ArrayList<String>) conf.get("blocks");
         blocksChances.clear();
-        for (String cs : chanceStrings) {
-            blocksChances.add(Serializer.stringToBlockChance(cs));
+
+        Map<String, Object> chanceBlocks;
+        String strKey;
+        chanceBlocks = conf.getConfigurationSection("blocks").getValues(false);
+
+        for (Object cb : chanceBlocks.keySet()) {
+            strKey = cb.toString();
+            blocksChances.add(new BlockChance(new BaseBlock(Integer.parseInt(strKey.split(":")[0]), Integer.parseInt(strKey.split(":")[1])), Double.parseDouble(chanceBlocks.get(cb).toString().replace("%", ""))));
+        }
+
+        if (blocksChances.size() == 0) {
+            blocksChances.add(new BlockChance(new BaseBlock(7), 100.0));
         }
 
         //Load the effects
+        effects.clear();
+
         Object[] blocks;
         Object[] effectIds;
-        Map<String, Object> rawData;
+        Map<String, Object> rawData = new HashMap<String, Object>();
         HashMap<String, String> data = new HashMap<String, String>();
 
         SerializedBlockEffect current;
@@ -373,24 +376,22 @@ public class Arena {
         blocks = conf.getConfigurationSection("effects").getKeys(false).toArray();
 
         for (Object block : blocks) {
-
             //Get all defined effect id's for this block type-
             effectIds = conf.getConfigurationSection("effects." + block).getKeys(false).toArray();
 
             for (Object effectId : effectIds) {
-
                 //Get the data for this effect as a HashMap<String, String>
+                rawData.clear();
                 rawData = conf.getConfigurationSection("effects." + block + "." + effectId).getValues(false);
 
                 //Convert the HashMap<Object, String> to a HashMap<String, String>
+                data.clear();
                 for (String key : rawData.keySet()) {
                     data.put(key, (String) rawData.get(key));
                 }
 
-                rawData.clear();
-
                 //Finally de-serialize
-                current = new SerializedBlockEffect(Material.getMaterial(Integer.parseInt(block.toString().split("#")[0])), Integer.parseInt(block.toString().split("#")[1]), Integer.parseInt((String) effectId), data);
+                current = new SerializedBlockEffect(Material.getMaterial(Integer.parseInt(block.toString().split(":")[0])), Integer.parseInt(block.toString().split(":")[1]), Integer.parseInt((String) effectId), data);
 
                 //Determine the effect type and create it
                 if (current.getData().containsKey("effect")) {
@@ -469,13 +470,17 @@ public class Arena {
         RandomFillPattern rndFill = new RandomFillPattern(blocksChances);
 
         Block current;
+        BaseBlock currentBase;
         BlockVector currentVector;
         World world = Bukkit.getServer().getWorld(regionDig.getWorld().getName());
 
         while (it.hasNext()) {
             currentVector = it.next();
+            currentBase = rndFill.next(currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ());
+
             current = new Location(world, currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ()).getBlock();
-            current.setType(Material.getMaterial((rndFill.next(currentVector.getBlockX(), currentVector.getBlockY(), currentVector.getBlockZ()).getType())));
+            current.setType(Material.getMaterial(currentBase.getType()));
+            current.setData((byte) currentBase.getData());
         }
     }
 
@@ -483,6 +488,7 @@ public class Arena {
      * Called on a BlockBreakEvent.
      * @param e the event
      */
+    @SuppressWarnings("deprecation")
     public void notifyOfBlockBreak(BlockBreakEvent e) {
 
         Location blockLocation =  e.getBlock().getLocation();
