@@ -36,6 +36,7 @@ public class DigDug extends JavaPlugin {
 
         myArenaManager = new ArenaManager();
         myArenaManager.loadArenas(this);
+
     }
 
     /**

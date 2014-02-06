@@ -9,6 +9,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.logging.Level;
 
+import me.igwb.DigDug.Effects.BlockEffect;
+import me.igwb.DigDug.Effects.BlockEffect.Target;
+import me.igwb.DigDug.Effects.BlockEffectPotion;
+import me.igwb.DigDug.Effects.BlockEffectScore;
+import me.igwb.DigDug.Effects.SerializedBlockEffect;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -296,17 +302,27 @@ public class Arena {
         conf.set("blocks", chanceStrings);
 
         //Save the effects
+
+        //Create examples effect if there are no effects yet.
         if (effects == null || effects.size() == 0) {
-            effects.add(new BlockEffect("example", Material.HARD_CLAY, new PotionEffect(PotionEffectType.BLINDNESS, 20, 1), 5, BlockEffect.Target.all_but_trigger));
+            effects.add(new BlockEffectScore(Material.STONE, 0, 0, Target.trigger, 1));
+            effects.add(new BlockEffectPotion(Material.COAL_ORE, 0, 1, Target.trigger, new PotionEffect(PotionEffectType.BLINDNESS, 120, 1), 20));
         }
 
-        HashMap<String, HashMap<String, String>> effectList = new HashMap<String, HashMap<String, String>>();
+        //HashMap<String, HashMap<String, String>> effectList = new HashMap<String, HashMap<String, String>>();
 
-        HashMap<String, String> map;
+        // HashMap<String, String> map;
+        SerializedBlockEffect current;
+
         for (BlockEffect eff : effects) {
-            map = eff.serialize();
+
+            current = eff.serialize();
+            conf.createSection("effects." +  current.getBlockType().getId() + "#" + current.getBlockDataValue() + "." + current.getId(), current.getData());
+
+            /*
+            map = eff.serialize().getData();
             effectList.put(((Integer) eff.getTriggerBlock().getId()).toString(), eff.serialize());
-            conf.createSection("effects." + map.get("block") + "." + map.get("name"), map);
+            conf.createSection("effects." + map.get("block") + "." + map.get("name"), map);*/
         }
 
         try {
@@ -320,6 +336,7 @@ public class Arena {
     /**
      * Attempts to load settings for this Arena from file.
      */
+    @SuppressWarnings("deprecation")
     public void load() {
         FileConfiguration conf = getArenaConfig();
 
@@ -345,27 +362,48 @@ public class Arena {
         }
 
         //Load the effects
-        Object[] blocks = conf.getConfigurationSection("effects").getKeys(false).toArray();
-        Object[] blockEffects;
-        Map<String, Object> map;
-        HashMap<String, String> stringMap = new HashMap<String, String>();
+        Object[] blocks;
+        Object[] effectIds;
+        Map<String, Object> rawData;
+        HashMap<String, String> data = new HashMap<String, String>();
+
+        SerializedBlockEffect current;
+
+        //Get all defined blocks from the effects section.
+        blocks = conf.getConfigurationSection("effects").getKeys(false).toArray();
 
         for (Object block : blocks) {
-            blockEffects = conf.getConfigurationSection("effects." + block).getKeys(false).toArray();
-            for (Object effectName : blockEffects) {
-                map = conf.getConfigurationSection("effects." + block + "." + effectName).getValues(false);
 
-                stringMap.clear();
-                //Bukkit.getServer().getLogger().log(Level.INFO, (String) effectName);
-                for (String key : map.keySet()) {
-                    // Bukkit.getServer().getLogger().log(Level.INFO, key + ", " + map.get(key));
-                    stringMap.put(key, (String) map.get(key));
+            //Get all defined effect id's for this block type-
+            effectIds = conf.getConfigurationSection("effects." + block).getKeys(false).toArray();
+
+            for (Object effectId : effectIds) {
+
+                //Get the data for this effect as a HashMap<String, String>
+                rawData = conf.getConfigurationSection("effects." + block + "." + effectId).getValues(false);
+
+                //Convert the HashMap<Object, String> to a HashMap<String, String>
+                for (String key : rawData.keySet()) {
+                    data.put(key, (String) rawData.get(key));
                 }
 
-                effects.add(new BlockEffect(stringMap));
+                rawData.clear();
+
+                //Finally de-serialize
+                current = new SerializedBlockEffect(Material.getMaterial(Integer.parseInt(block.toString().split("#")[0])), Integer.parseInt(block.toString().split("#")[1]), Integer.parseInt((String) effectId), data);
+
+                //Determine the effect type and create it
+                if (current.getData().containsKey("effect")) {
+                    effects.add(new BlockEffectPotion(current));
+                    continue;
+                }
+
+                if (current.getData().containsKey("score")) {
+                    effects.add(new BlockEffectScore(current));
+                    continue;
+                }
             }
         }
-
     }
 
     /**
@@ -458,7 +496,7 @@ public class Arena {
 
                     //Execute effects
                     for (BlockEffect eff : effects) {
-                        if (eff.getTriggerBlock().equals(e.getBlock().getType())) {
+                        if (eff.getTriggerBlock().equals(e.getBlock().getType()) && Byte.toString(e.getBlock().getState().getRawData()).equals(eff.getDataValue().toString())) {
                             eff.execute(e.getPlayer(), this);
                         }
                     }
