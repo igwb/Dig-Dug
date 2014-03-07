@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.logging.Level;
-
 import me.igwb.DigDug.Effects.BlockEffect;
 import me.igwb.DigDug.Effects.BlockEffect.Target;
 import me.igwb.DigDug.Effects.BlockEffectPotion;
@@ -39,6 +37,12 @@ public class Arena {
     //Configurations
     private FileConfiguration arenaConfig = null;
     private File arenaConfigFile = null;
+
+    private FileConfiguration arenaBlocksConfig = null;
+    private File arenaBlocksConfigFile = null;
+
+    private FileConfiguration arenaEffectsConfig = null;
+    private File arenaEffectsConfigFile = null;
 
     //Utility
     private DigDug parent;
@@ -281,6 +285,8 @@ public class Arena {
     @SuppressWarnings("deprecation")
     public void save() {
         FileConfiguration conf = getArenaConfig();
+        FileConfiguration blocksConf = getArenaBlocksConfig();
+        FileConfiguration effectsConf = getArenaEffectsConfig();
 
         //Save the times
         if (autoStartTimer == null) {
@@ -326,7 +332,7 @@ public class Arena {
             chances.put(bc.getBlock().getId() + ":" + bc.getBlock().getData(), bc.getChance() + "%");
         }
 
-        conf.createSection("blocks", chances);
+        blocksConf.createSection("blocks", chances);
 
         //Save the effects
 
@@ -341,11 +347,13 @@ public class Arena {
         for (BlockEffect eff : effects) {
 
             current = eff.serialize();
-            conf.createSection("effects." +  current.getBlockType().getId() + ":" + current.getBlockDataValue() + "." + current.getId(), current.getData());
+            effectsConf.createSection("effects." +  current.getBlockType().getId() + ":" + current.getBlockDataValue() + "." + current.getId(), current.getData());
         }
 
         try {
             conf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
+            blocksConf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_blocks.yml"));
+            effectsConf.save(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_effects.yml"));
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -358,6 +366,8 @@ public class Arena {
     @SuppressWarnings("deprecation")
     public void load() {
         FileConfiguration conf = getArenaConfig();
+        FileConfiguration blocksConf = getArenaBlocksConfig();
+        FileConfiguration effectsConf = getArenaEffectsConfig();
 
         //Load the times
         autoStartTimer = (Integer) conf.get("time.autoStart");
@@ -387,7 +397,7 @@ public class Arena {
 
         Map<String, Object> chanceBlocks;
         String strKey;
-        chanceBlocks = conf.getConfigurationSection("blocks").getValues(false);
+        chanceBlocks = blocksConf.getConfigurationSection("blocks").getValues(false);
 
         for (Object cb : chanceBlocks.keySet()) {
             strKey = cb.toString();
@@ -409,16 +419,16 @@ public class Arena {
         SerializedBlockEffect current;
 
         //Get all defined blocks from the effects section.
-        blocks = conf.getConfigurationSection("effects").getKeys(false).toArray();
+        blocks = effectsConf.getConfigurationSection("effects").getKeys(false).toArray();
 
         for (Object block : blocks) {
             //Get all defined effect id's for this block type-
-            effectIds = conf.getConfigurationSection("effects." + block).getKeys(false).toArray();
+            effectIds = effectsConf.getConfigurationSection("effects." + block).getKeys(false).toArray();
 
             for (Object effectId : effectIds) {
                 //Get the data for this effect as a HashMap<String, String>
                 rawData.clear();
-                rawData = conf.getConfigurationSection("effects." + block + "." + effectId).getValues(false);
+                rawData = effectsConf.getConfigurationSection("effects." + block + "." + effectId).getValues(false);
 
                 //Convert the HashMap<Object, String> to a HashMap<String, String>
                 data.clear();
@@ -455,11 +465,35 @@ public class Arena {
     }
 
     /**
+     * Gets the Blocks FileConfiguration for this Arena.
+     * @return The blocks configuration
+     */
+    public FileConfiguration getArenaBlocksConfig() {
+        if (arenaBlocksConfig == null) {
+            reloadArenaConfig();
+        }
+        return arenaBlocksConfig;
+    }
+
+    /**
+     * Gets the Effects FileConfiguration for this Arena.
+     * @return The effects configuration
+     */
+    public FileConfiguration getArenaEffectsConfig() {
+        if (arenaEffectsConfig == null) {
+            reloadArenaConfig();
+        }
+        return arenaEffectsConfig;
+    }
+
+    /**
      * Saves the default configuration to file if it doesn't exist already.
      */
     public void saveDefaultConfig() {
+        //Save the arena data
+        //___________________
+
         if (arenaConfigFile == null) {
-            parent.getLogger().log(Level.INFO, "Saving to: " + parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml");
             arenaConfigFile = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml");
         }
         if (!arenaConfigFile.exists()) {
@@ -467,22 +501,80 @@ public class Arena {
             File temp = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena.yml");
             temp.renameTo(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + ".yml"));
         }
+
+        //Save the arena blocks settings
+        //______________________________
+
+        if (arenaBlocksConfigFile == null) {
+            arenaBlocksConfigFile = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_blocks.yml");
+        }
+        if (!arenaBlocksConfigFile.exists()) {
+            parent.saveResource("arenas\\arena_blocks.yml", false);
+            File temp = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_blocks.yml");
+            temp.renameTo(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_blocks.yml"));
+        }
+
+        //Save the arena effects settings
+        //_______________________________
+
+        if (arenaEffectsConfigFile == null) {
+            arenaEffectsConfigFile = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_effects.yml");
+        }
+        if (!arenaEffectsConfigFile.exists()) {
+            parent.saveResource("arenas\\arena_effects.yml", false);
+            File temp = new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_effects.yml");
+            temp.renameTo(new File(parent.getDataFolder().getAbsolutePath() + "\\arenas\\arena_" + name + "_effects.yml"));
+        }
     }
 
     /**
      * Reloads the Arena configuration from File.
      */
     public void reloadArenaConfig() {
+        InputStream defConfigStream;
+
+        //Load the arena data
+        //___________________
         if (arenaConfigFile == null) {
             arenaConfigFile = new File(parent.getDataFolder(), "\\arenas\\arena_" + name + ".yml");
         }
         arenaConfig = YamlConfiguration.loadConfiguration(arenaConfigFile);
 
         // Look for defaults in the jar
-        InputStream defConfigStream = parent.getResource("\\arenas\\arena.yml");
+        defConfigStream = parent.getResource("\\arenas\\arena.yml");
         if (defConfigStream != null) {
             YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
             arenaConfig.setDefaults(defConfig);
+        }
+
+        //Load the arena blocks settings
+        //______________________________
+
+        if (arenaBlocksConfigFile == null) {
+            arenaBlocksConfigFile = new File(parent.getDataFolder(), "\\arenas\\arena_" + name + "_blocks.yml");
+        }
+        arenaBlocksConfig = YamlConfiguration.loadConfiguration(arenaBlocksConfigFile);
+
+        // Look for defaults in the jar
+        defConfigStream = parent.getResource("\\arenas\\arena_blocks.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            arenaBlocksConfig.setDefaults(defConfig);
+        }
+
+        //Load the arena effects settings
+        //_______________________________
+
+        if (arenaEffectsConfigFile == null) {
+            arenaEffectsConfigFile = new File(parent.getDataFolder(), "\\arenas\\arena_" + name + "_effects.yml");
+        }
+        arenaEffectsConfig = YamlConfiguration.loadConfiguration(arenaEffectsConfigFile);
+
+        // Look for defaults in the jar
+        defConfigStream = parent.getResource("\\arenas\\arena_blocks.yml");
+        if (defConfigStream != null) {
+            YamlConfiguration defConfig = YamlConfiguration.loadConfiguration(defConfigStream);
+            arenaEffectsConfig.setDefaults(defConfig);
         }
     }
 

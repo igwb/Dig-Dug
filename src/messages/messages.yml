@@ -1,3 +1,11 @@
 Messages:
-  cmd_arena_usage: test  
-  cmd_arena_create_usage: test2  
+  prefix: [DigDug]
+  cmd_arena_usage: dd arena [arenaName] [create, delete, set, check, regen, load]
+  cmd_arena_create_usage: test2
+  cmd_arena_delete_usage: test2
+  cmd_arena_set_usage: dd arena [arenaName] set [digregion, playerspawn, exitpoint]
+  cmd_arena_check_usage: test2
+  cmd_arena_regen_usage: test2
+  cmd_arena_load_usage: test2
+  cmd_list: test2
+  cmd_join: test2

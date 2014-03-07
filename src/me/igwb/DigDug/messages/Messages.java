@@ -3,16 +3,11 @@ package me.igwb.DigDug.messages;
 import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.logging.Level;
-
 import me.igwb.DigDug.DigDug;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-
-import com.sun.org.apache.xalan.internal.xsltc.runtime.Hashtable;
 
 public class Messages {
 
@@ -23,13 +18,13 @@ public class Messages {
     private HashMap<String, String> msg;
 
     @SuppressWarnings("unchecked")
-    public Messages () {
+    public Messages() {
 
         msg = (HashMap<String, String>) getMsgConfig().getConfigurationSection("Messages");
     }
 
     public String getMsg(String key) {
-        
+
         return msg.get(key);
     }
 

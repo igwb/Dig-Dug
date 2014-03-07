@@ -30,8 +30,13 @@ public class ArenaManager {
         if (arenaFiles != null) {
             String name;
             for (File file : arenaFiles) {
-                parent.getLogger().log(Level.INFO, "Found: " + file.getAbsolutePath());
+
                 name = file.getName().replace(".yml", "").replace("arena_", "");
+                if (name.contains("_blocks") || name.contains("_effects")) {
+                    continue;
+                }
+                parent.getLogger().log(Level.INFO, "Found: " + file.getAbsolutePath());
+
                 addArena(parent, name);
                 getArena(name).load();
             }
