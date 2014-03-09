@@ -1,11 +1,30 @@
 Messages:
-  prefix: [DigDug]
-  cmd_arena_usage: dd arena [arenaName] [create, delete, set, check, regen, load]
-  cmd_arena_create_usage: test2
-  cmd_arena_delete_usage: test2
-  cmd_arena_set_usage: dd arena [arenaName] set [digregion, playerspawn, exitpoint]
-  cmd_arena_check_usage: test2
-  cmd_arena_regen_usage: test2
-  cmd_arena_load_usage: test2
-  cmd_list: test2
-  cmd_join: test2
+  prefix: "[DigDug] "
+  player_only: "This command can only be performed by a player!"
+  arena_noexist: "The arena %arena% doesn't exist!"
+  arena_exists: "An arena with the name %arena% alredy exist!"
+  arena_region_invalid: "The region you selected is invalid! (It must be a cuboid.)"
+  arena_region_notselected: "You did not select a region with WorldEdit!"
+  arena_digregion_created: "Dig region assigned successfuly!"
+  arena_valid: "The arena %arena% is valid and ready for use!"
+  arena_invalid: "The following things are missing in arena %arena%:"
+  cmd_arena_usage: "Usage: dd arena [arenaName] [create, delete, set, check, regen, load]"
+  cmd_arena_create_usage: "Usage: dd arena [arenaName] create"
+  cmd_arena_create_success: "Arena created successfuly!"
+  cmd_arena_delete_usage: "Usage: dd arena [arenaName] delete"
+  cmd_arena_set_usage: "Usage: dd arena [arenaName] set [digregion, playerspawn, exitpoint]"
+  cmd_arena_set_digregion_success: "Dig region assigned successfuly!"
+  cmd_arena_set_exitpoint_success: "Successfuly set exit point to X: %x% Y: %y% Z: %z%"
+  cmd_arena_set_playerspawn_usage: "Usage: dd arena [arenaName] set playerspawn [spawnname]"
+  cmd_arena_set_playerspawn_success: "Successfuly added playerspawn at X: %x% Y: %y% Z: %z%"
+  cmd_arena_set_playerspawn_failure: "Could not add playerspawn at X: %x% Y: %y% Z: %z%! Does it already exist?"
+  cmd_arena_check_usage: "Usage: dd arena [arenaName] check"
+  cmd_arena_regen_usage: "Usage: dd arena [arenaName] regen"
+  cmd_arena_regen_success: "Successfuly regenerated the digregion!"
+  cmd_arena_reload_usage: "Usage: dd arena [arenaName] reload"
+  cmd_arena_reload_success: "Successfuly reloaded the configuration for arena %arena%!"
+  cmd_list: "Usage: dd list"
+  cmd_list_knownarenas: "Known arenas: "
+  cmd_list_noarenas: "No arenas defined. Use /dd arena <name> create"
+  cmd_join_usage: "Usage: dd join [arenaName]"
+  cmd_dd_usage: "Usage: dd [arena, list, join]"

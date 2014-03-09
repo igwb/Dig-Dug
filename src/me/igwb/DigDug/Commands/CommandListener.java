@@ -3,6 +3,7 @@ import java.util.ArrayList;
 
 import me.igwb.DigDug.Arena;
 import me.igwb.DigDug.DigDug;
+import me.igwb.DigDug.messages.Messages;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -17,6 +18,7 @@ import com.sk89q.worldedit.regions.CuboidRegion;
 public class CommandListener implements CommandExecutor {
 
     private DigDug parent;
+    private Messages msg;
 
     /**
      * Instantiates the CommandListener.
@@ -24,12 +26,22 @@ public class CommandListener implements CommandExecutor {
      */
     public CommandListener(DigDug parentPlugin) {
         parent = parentPlugin;
+        msg = parent.getMessages();
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String firstArg, String[] args) {
 
-
+        /*
+         *   /---- [arena, list, join]
+         *   |         /---- [arenaName]
+         *   |         |         /---- [create, delete, set, check, regen, reload]
+         *   |         |         |         /---- [digregion, playerspawn, exitpoint]
+         *   |         |         |         |         /---- other arguments
+         *   |         |         |         |         |
+         *   |         |         |         |         |
+         * args[0] | args[1] | args[2] | args[3] | args[4] ...
+         */
 
         if (!(sender instanceof Player)) {
             sender.sendMessage("DigDug commands can only be performed by a player!");
@@ -37,82 +49,39 @@ public class CommandListener implements CommandExecutor {
         }
 
         //Initialize the pSender variable
-        Player pSender = (Player) sender;
+        //        Player pSender = (Player) sender;
 
-        if (cmd.getName().toLowerCase().equals("dd") | cmd.getName().toLowerCase().equals("digdug")) {
-            if (args != null && args.length >= 1) {
-                switch (args[0].toLowerCase()) {
-                case "arena":
-                    if (args.length >= 3) {
+        String commandName = cmd.getName();
 
-                        //Initialize arenaName variable
-                        String arenaName = args[1];
+        //Check if the command is for digdug
+        if (commandName.equals("dd") | commandName.equals("digdug")) {
 
-                        switch (args[2].toLowerCase()) {
-                        case "create":
+            //Check if there were any arguments. Else return.
+            if (args == null || args.length == 0) {
+                sender.sendMessage(msg.getMsg("cmd_dd_usage"));
+                return true;
+            }
 
-                            createArena(pSender, arenaName);
-                            break;
-                        case "delete":
+            String commandBase = args[0].toLowerCase();
 
-                            deleteArena(pSender, arenaName);
-                            break;
-                        case "set":
-                            switch (args[3]) {
-                            case "digregion":
+            switch (commandBase) {
+            case "arena":
+                cmdArena(sender, args);
+                break;
+            case "list":
 
-                                arenaSetDigregion(pSender, arenaName);
-                                break;
-                            case "playerspawn":
-
-                                if (args.length >= 5) {
-                                    setPlayerSpawn(pSender, arenaName, args[4]);
-                                } else {
-                                    pSender.sendMessage("Usage: digdug arena [name] set playerspawn [spawnname]");
-                                }
-                                break;
-                            case "exitpoint":
-
-                                setExitPoint(pSender, arenaName);
-                                break;
-                            default:
-                                break;
-                            }
-                            break;
-                        case "check":
-
-                            checkArena(pSender, arenaName);
-                            break;
-                        case "regen":
-                            parent.getArenaManager().getArena(arenaName).regenerateDigRegion();
-                            break;
-                        case "load":
-                            parent.getArenaManager().getArena(arenaName).reloadArenaConfig();
-                            parent.getArenaManager().getArena(arenaName).load();
-                            break;
-                        default:
-                            break;
-                        }
-                    } else {
-                        sender.sendMessage("Usage: digdug arena [name] [create, delete, set, regen]");
-                    }
-                    break;
-                case "list":
-
-                    listArenas(pSender);
-                    break;
-                case "join":
-                    if (args.length >= 2) {
-                        String arenaName = args[1];
-                        parent.getArenaManager().getArena(arenaName).joinPlayer(pSender.getName());
-                    }
-                    //TODO: Add functionality
-                    break;
-                default:
-                    break;
+                cmdList(sender);
+                break;
+            case "join":
+                if (args.length >= 2) {
+                    cmdJoin(sender, args[1]);
+                } else {
+                    sender.sendMessage(msg.getMsg("cmd_join_usage"));
                 }
-            } else {
-                sender.sendMessage("Usage: digdug [arena, list]");
+                break;
+            default:
+                sender.sendMessage(msg.getMsg("cmd_dd_usage"));
+                break;
             }
         } else {
             return false;
@@ -121,25 +90,139 @@ public class CommandListener implements CommandExecutor {
     }
 
     /**
-     * Sends a list of all known arenas to the Player supplied.
-     * @param sender The player to notify.
+     * Execute a /digdug arena * command.
+     * @param sender The CommandSender
+     * @param args The arguments.
      */
-    private void listArenas(Player sender) {
-        ArrayList<Arena> arenas = parent.getArenaManager().getArenas();
-        String msg = "Known arenas: ";
-        if (arenas != null | arenas.size() == 0) {
-            for (Arena arena : arenas) {
+    private void cmdArena(CommandSender sender, String[] args) {
 
-                if (arena.isValid()) {
-                    msg += ChatColor.GREEN + arena.getName() + " ";
-                } else {
-                    msg += ChatColor.RED + arena.getName() + " ";
-                }
+        //Check if there are enough arguments
+        if (args.length < 3) {
+            sender.sendMessage(msg.getMsg("cmd_arena_usage"));
+            return;
+        }
+
+        //Initialize arenaName variable
+        String arenaName = args[1];
+
+        switch (args[2].toLowerCase()) {
+        case "create":
+
+            cmdArenaCreate(sender, arenaName);
+            break;
+        case "delete":
+
+            cmdArenaDelete(sender, arenaName);
+            break;
+        case "set":
+            cmdArenaSet(sender, arenaName, args);
+            break;
+        case "check":
+
+            cmdArenaCheck(sender, arenaName);
+            break;
+        case "regen":
+
+            cmdArenaRegen(sender, arenaName);
+            break;
+        case "reload":
+
+            cmdArenaReload(sender, arenaName);
+            break;
+        default:
+
+            sender.sendMessage(msg.getMsg("cmd_arena_usage"));
+            break;
+        }
+
+    }
+
+    /**
+     * Creates an arena on behalf of a Player using his WorldEdit selection.
+     * @param sender The player to pull the WorldEdit-Selection from.
+     * @param arenaName The Name for the new arena.
+     */
+    private void cmdArenaCreate(CommandSender sender, String arenaName) {
+
+        //Check if the sender is a player. Else return.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(msg.getMsg("player_only"));
+            return;
+        }
+
+        Player pSender = (Player) sender;
+
+        //Check if the arena exists already
+        if (parent.getArenaManager().exists(arenaName)) {
+            sender.sendMessage(msg.getMsg("arena_exists").replace("%arena%", arenaName));
+            return;
+        }
+
+        //Check if the sender as selected a region
+        if (parent.getWE().getSelection(pSender) != null) {
+            //Add the arena
+            parent.getArenaManager().addArena(parent, arenaName);
+            try {
+                parent.getArenaManager().getArena(arenaName).setRegionArena((CuboidRegion) parent.getWE().getSelection(pSender).getRegionSelector().getRegion().clone());
+            } catch (IncompleteRegionException e) {
+                sender.sendMessage(msg.getMsg("arena_region_invalid"));
             }
-            sender.sendMessage(msg);
+
+            //Notify the sender about the creation progress
+            sender.sendMessage(msg.getMsg("cmd_arena_create_success"));
+            if (!parent.getArenaManager().getArena(arenaName).isValid()) {
+                sendMissing(sender, arenaName);
+            }
         } else {
-            sender.sendMessage("There are currently no arenas defined!");
-            sender.sendMessage("Create on with /digdug arena create [name]");
+            sender.sendMessage(msg.getMsg("arena_region_notselected"));
+        }
+    }
+
+    /**
+     *  Tries to delete an Arena by name.
+     * @param sender The player to notify of the deletion progress.
+     * @param arenaName The Arena to delete.
+     */
+    private void cmdArenaDelete(CommandSender sender, String arenaName) {
+
+        //Check if the arena exists.
+        if (!parent.getArenaManager().exists(arenaName)) {
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
+            return;
+        }
+
+        //Delete the Arena
+        parent.getArenaManager().deleteArena(arenaName);
+    }
+
+    /**
+     * Executes "the arena set" command.
+     * @param sender The CommandSender.
+     * @param arenaName The arena affected.
+     * @param args Some arguments.
+     */
+    private void cmdArenaSet(CommandSender sender, String arenaName, String[] args) {
+        switch (args[3]) {
+        case "digregion":
+
+            cmdArenaSetDigregion(sender, arenaName);
+            break;
+        case "playerspawn":
+
+            if (args.length >= 5) {
+                cmdArenaSetPlayerspawn(sender, arenaName, args[4]);
+            } else {
+                sender.sendMessage(msg.getMsg("cmd_arena_set_playerspawn_usage"));
+            }
+            break;
+        case "exitpoint":
+
+            cmdArenaSetExitpoint(sender, arenaName);
+            break;
+        default:
+            sender.sendMessage(msg.getMsg("cmd_arena_set_usage"));
+            break;
         }
     }
 
@@ -148,75 +231,40 @@ public class CommandListener implements CommandExecutor {
      * @param sender The player to pull the WorldEdit-Selection from.
      * @param arenaName The Name of the arena.
      */
-    private void arenaSetDigregion(Player sender, String arenaName) {
+    private void cmdArenaSetDigregion(CommandSender sender, String arenaName) {
+        //Check if the sender is a player. Else return.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(msg.getMsg("player_only"));
+            return;
+        }
+
+        Player pSender = (Player) sender;
 
         //Check if the arena exists.
         if (!parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("The arena \"" + arenaName + "\" does not exist!");
-            listArenas(sender);
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
             return;
         }
 
         //Check if the sender as selected a region
-        if (parent.getWE().getSelection(sender) != null) {
+        if (parent.getWE().getSelection(pSender) != null) {
             //Get the arena
             Arena ar = parent.getArenaManager().getArena(arenaName);
             try {
-                ar.setRegionDig((CuboidRegion) parent.getWE().getSelection(sender).getRegionSelector().getRegion().clone());
+                ar.setRegionDig((CuboidRegion) parent.getWE().getSelection(pSender).getRegionSelector().getRegion().clone());
             } catch (IncompleteRegionException e) {
-                sender.sendMessage("The region you selected is invalid! (It must be a cuboid.)");
+                sender.sendMessage(msg.getMsg("arena_region_invalid"));
             }
 
             //Notify the sender about the creation progress
-            sender.sendMessage("Dig region assigned successfuly! The following things are still missing:");
-            for (String missing : parent.getArenaManager().getArena(arenaName).getMissing()) {
-                sender.sendMessage(missing);
+            sender.sendMessage(msg.getMsg("cmd_arena_set_digregion_success"));
+            if (!parent.getArenaManager().getArena(arenaName).isValid()) {
+                sendMissing(sender, arenaName);
             }
+
         } else {
-            sender.sendMessage("You did not select a region with WorldEdit!");
-        }
-    }
-
-    /**
-     * Checks if an Arena is valid and notifies the sender about it's status.
-     * @param sender The Player to notify.
-     * @param arenaName The Arena to check.
-     */
-    private void checkArena(Player sender, String arenaName) {
-        //Check if the arena exists.
-        if (!parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("The arena \"" + arenaName + "\" does not exist!");
-            listArenas(sender);
-            return;
-        }
-
-        //Notify the sender
-        if (parent.getArenaManager().getArena(arenaName).isValid()) {
-            sender.sendMessage("The arena \"" + arenaName + "\" is valid and ready for use!");
-        } else {
-            sender.sendMessage("The following things are missing in arena \"" + arenaName + "\":");
-            sendMissing(sender, arenaName);
-        }
-
-    }
-
-    /**
-     * Sends a list of missing things in an Arena to a Player.
-     * @param sender The Player to notify.
-     * @param arenaName The Arena to check.
-     */
-    private void sendMissing(Player sender, String arenaName) {
-        //Check if the arena exists
-        if (!parent.getArenaManager().exists(arenaName)) {
-            return;
-        }
-
-        //Notify the player
-        ArrayList<String> missing = parent.getArenaManager().getArena(arenaName).getMissing();
-        if (missing != null) {
-            for (String msg : missing) {
-                sender.sendMessage(msg);
-            }
+            sender.sendMessage(msg.getMsg("arena_region_notselected"));
         }
     }
 
@@ -226,20 +274,28 @@ public class CommandListener implements CommandExecutor {
      * @param arenaName Add the spawn to this Arena.
      * @param spawnName The name of the player spawn.
      */
-    private void setPlayerSpawn(Player sender, String arenaName, String spawnName) {
+    private void cmdArenaSetPlayerspawn(CommandSender sender, String arenaName, String spawnName) {
+        //Check if the sender is a player. Else return.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(msg.getMsg("player_only"));
+            return;
+        }
+
+        Player pSender = (Player) sender;
+
         //Check if the arena exists.
         if (!parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("The arena \"" + arenaName + "\" does not exist!");
-            listArenas(sender);
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
             return;
         }
 
         //Try to add the spawn
-        Location location = sender.getPlayer().getLocation();
+        Location location = pSender.getPlayer().getLocation();
         if (parent.getArenaManager().getArena(arenaName).addPlayerSpawn(spawnName, location)) {
-            sender.sendMessage("Successfuly added playerspawn \"" + spawnName + "\" at X:" + location.getBlockX() + " Y:" + location.getBlockY() + " Z:" + location.getBlockZ());
+            sender.sendMessage(msg.getMsg("cmd_arena_set_playerspawn_success").replace("%x%", Integer.toString(location.getBlockX())).replace("%y%", Integer.toString(location.getBlockY())).replace("%z%", Integer.toString(location.getBlockZ())));
         } else {
-            sender.sendMessage("Could not add \"" + spawnName + "\" at X:" + location.getBlockX() + " Y:" + location.getBlockY() + " Z:" + location.getBlockZ() + " does it exist already?");
+            sender.sendMessage(msg.getMsg("cmd_arena_set_playerspawn_failure").replace("%x%", Integer.toString(location.getBlockX())).replace("%y%", Integer.toString(location.getBlockY())).replace("%z%", Integer.toString(location.getBlockZ())));
         }
     }
 
@@ -248,67 +304,147 @@ public class CommandListener implements CommandExecutor {
      * @param sender The player to pull the location from.
      * @param arenaName The Arena to set the exit for.
      */
-    private void setExitPoint(Player sender, String arenaName) {
+    private void cmdArenaSetExitpoint(CommandSender sender, String arenaName) {
+        //Check if the sender is a player. Else return.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(msg.getMsg("player_only"));
+            return;
+        }
+
+        Player pSender = (Player) sender;
+
         //Check if the arena exists.
         if (!parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("The arena \"" + arenaName + "\" does not exist!");
-            listArenas(sender);
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
             return;
         }
 
         //Try to add the exit point
-        Location location = sender.getPlayer().getLocation();
+        Location location = pSender.getPlayer().getLocation();
         parent.getArenaManager().getArena(arenaName).setExitPoint(location);
-        sender.sendMessage("Successfuly set exit point to X:" + location.getBlockX() + " Y:" + location.getBlockY() + " Z:" + location.getBlockZ());
-
+        sender.sendMessage(msg.getMsg("cmd_arena_set_exitpoint_success").replace("%x%", Integer.toString(location.getBlockX())).replace("%y%", Integer.toString(location.getBlockY())).replace("%z%", Integer.toString(location.getBlockZ())));
     }
 
     /**
-     * Creates an arena on behalf of a Player using his WorldEdit selection.
-     * @param sender The player to pull the WorldEdit-Selection from.
-     * @param arenaName The Name for the new arena.
+     * Checks if an Arena is valid and notifies the sender about it's status.
+     * @param sender The Player to notify.
+     * @param arenaName The Arena to check.
      */
-    private void createArena(Player sender, String arenaName) {
-
-        //Check if the arena exists already
-        if (parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("An arena with the name \"" + arenaName + "\" already exists!");
-            return;
-        }
-
-        //Check if the sender as selected a region
-        if (parent.getWE().getSelection(sender) != null) {
-            //Add the arena
-            parent.getArenaManager().addArena(parent, arenaName);
-            try {
-                parent.getArenaManager().getArena(arenaName).setRegionArena((CuboidRegion) parent.getWE().getSelection(sender).getRegionSelector().getRegion().clone());
-            } catch (IncompleteRegionException e) {
-                sender.sendMessage("The region you selected is invalid! (It must be a cuboid)");
-            }
-
-            //Notify the sender about the creation progress
-            sender.sendMessage("Arena created successfuly! The following things are still missing:");
-            sendMissing(sender, arenaName);
-        } else {
-            sender.sendMessage("You did not select a region with WorldEdit!");
-        }
-    }
-
-    /**
-     *  Tries to delete an Arena by name.
-     * @param sender The player to notify of the deletion progress.
-     * @param arenaName The Arena to delete.
-     */
-    private void deleteArena(Player sender, String arenaName) {
+    private void cmdArenaCheck(CommandSender sender, String arenaName) {
         //Check if the arena exists.
         if (!parent.getArenaManager().exists(arenaName)) {
-            sender.sendMessage("The arena \"" + arenaName + "\" does not exist!");
-            listArenas(sender);
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
             return;
         }
 
-        //Delete the Arena
-        parent.getArenaManager().deleteArena(arenaName);
+        //Notify the sender
+        if (parent.getArenaManager().getArena(arenaName).isValid()) {
+            sender.sendMessage(msg.getMsg("arena_valid").replace("%arena%", arenaName));
+        } else {
+            sender.sendMessage(msg.getMsg("arena_invalid").replace("%arena%", arenaName));
+            sendMissing(sender, arenaName);
+        }
     }
+
+    /**
+     * Regenerates the digregion of an arena.
+     * @param sender The player that sent the request.
+     * @param arenaName The arena affected.
+     */
+    private void cmdArenaRegen(CommandSender sender, String arenaName) {
+        //Check if the arena exists.
+        if (!parent.getArenaManager().exists(arenaName)) {
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
+            return;
+        }
+
+        parent.getArenaManager().getArena(arenaName).regenerateDigRegion();
+        sender.sendMessage(msg.getMsg("cmd_arena_regen_success"));
+    }
+
+    /**
+     * Reloads the configuration of an arena.
+     * @param sender The command sender.
+     * @param arenaName The arena affected.
+     */
+    private void cmdArenaReload(CommandSender sender, String arenaName) {
+        //Check if the arena exists.
+        if (!parent.getArenaManager().exists(arenaName)) {
+            sender.sendMessage(msg.getMsg("arena_noexist").replace("%arena%", arenaName));
+            cmdList(sender);
+            return;
+        }
+
+        parent.getArenaManager().getArena(arenaName).reloadArenaConfig();
+        parent.getArenaManager().getArena(arenaName).load();
+
+        sender.sendMessage(msg.getMsg("cmd_arena_reload_success").replace("%arena", arenaName));
+    }
+
+    /**
+     * Sends a list of all known arenas to the Player supplied.
+     * @param sender The player to notify.
+     */
+    private void cmdList(CommandSender sender) {
+        ArrayList<Arena> arenas = parent.getArenaManager().getArenas();
+        String lst = msg.getMsg("cmd_list_knownarenas");
+        if (arenas != null | arenas.size() == 0) {
+            for (Arena arena : arenas) {
+
+                if (arena.isValid()) {
+                    lst += ChatColor.GREEN + arena.getName() + " ";
+                } else {
+                    lst += ChatColor.RED + arena.getName() + " ";
+                }
+            }
+            sender.sendMessage(lst);
+        } else {
+            sender.sendMessage(msg.getMsg("cmd_list_knownarenas"));
+            sender.sendMessage(msg.getMsg("cmd_list_noarenas"));
+        }
+    }
+
+    /**
+     * Let's a player join an arena.
+     * @param sender The CommandSender
+     * @param arenaName The arena.
+     */
+    private void cmdJoin(CommandSender sender, String arenaName) {
+        //Check if the sender is a player. Else return.
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(msg.getMsg("player_only"));
+            return;
+        }
+
+        Player pSender = (Player) sender;
+
+        parent.getArenaManager().getArena(arenaName).joinPlayer(pSender.getName());
+    }
+
+    /**
+     * Sends a list of missing things in an Arena to a Player.
+     * @param sender The Player to notify.
+     * @param arenaName The Arena to check.
+     */
+    private void sendMissing(CommandSender sender, String arenaName) {
+        //Check if the arena exists
+        if (!parent.getArenaManager().exists(arenaName)) {
+            return;
+        }
+
+        //Notify the player
+        sender.sendMessage(msg.getMsg("arena_invalid").replace("%arena%", arenaName));
+
+        ArrayList<String> missing = parent.getArenaManager().getArena(arenaName).getMissing();
+        if (missing != null) {
+            for (String mis : missing) {
+                sender.sendMessage(mis);
+            }
+        }
+    }
+
 
 }

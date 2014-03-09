@@ -3,6 +3,9 @@ package me.igwb.DigDug.messages;
 import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+
 import me.igwb.DigDug.DigDug;
 
 import org.bukkit.Bukkit;
@@ -17,15 +20,36 @@ public class Messages {
 
     private HashMap<String, String> msg;
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Creates a new instance of the Messages.class and loads the locale file.
+     */
     public Messages() {
+        saveDefaultConfig();
 
-        msg = (HashMap<String, String>) getMsgConfig().getConfigurationSection("Messages");
+        msg = new HashMap<String, String>();
+
+        Map<String, Object> temp;
+        String strKey;
+        temp = getMsgConfig().getConfigurationSection("Messages").getValues(false);
+
+        Bukkit.getServer().getLogger().log(Level.INFO, "Messages:");
+        for (Object obj : temp.keySet()) {
+            strKey = obj.toString();
+            msg.put(strKey.toString(), temp.get(strKey).toString());
+            Bukkit.getServer().getLogger().log(Level.INFO, strKey + " : " + msg.get(strKey));
+        }
+
+
     }
 
+    /**
+     * Returns the message assigned to a key.
+     * @param key The key.
+     * @return The message.
+     */
     public String getMsg(String key) {
 
-        return msg.get(key);
+        return msg.get("prefix") + msg.get(key);
     }
 
     /**
@@ -46,12 +70,12 @@ public class Messages {
         DigDug pl = (DigDug) Bukkit.getServer().getPluginManager().getPlugin("DigDug");
 
         if (msgConfigFile == null) {
-            msgConfigFile = new File(pl.getDataFolder().getAbsolutePath() + "\\messages.yml");
+            msgConfigFile = new File(pl.getDataFolder().getAbsolutePath() + "\\messages\\messages.yml");
         }
         if (!msgConfigFile.exists()) {
-            pl.saveResource("arenas\\arenaConfig.yml", false);
-            File temp = new File(pl.getDataFolder().getAbsolutePath() + "\\messages.yml");
-            temp.renameTo(new File(pl.getDataFolder().getAbsolutePath() + "\\messages.yml"));
+            pl.saveResource("messages\\messages.yml", false);
+            File temp = new File(pl.getDataFolder().getAbsolutePath() + "\\messages\\messages.yml");
+            temp.renameTo(new File(pl.getDataFolder().getAbsolutePath() + "\\messages\\messages.yml"));
         }
     }
 
@@ -62,7 +86,7 @@ public class Messages {
         DigDug pl = (DigDug) Bukkit.getServer().getPluginManager().getPlugin("DigDug");
 
         if (msgConfigFile == null) {
-            msgConfigFile = new File(pl.getDataFolder(), "\\messages.yml");
+            msgConfigFile = new File(pl.getDataFolder(), "\\messages\\messages.yml");
         }
         msgConfig = YamlConfiguration.loadConfiguration(msgConfigFile);
 

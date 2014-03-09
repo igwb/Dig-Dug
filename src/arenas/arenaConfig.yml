@@ -1,5 +1,12 @@
 name: default
 time:
-  autoStart: 20
+  autoStart: 15
   gameTime: 120
 minPlayers: 1
+regions:
+  arena: world#(0, 0, 0) - (0, 0, 0)
+  dig: world#(0, 0, 0) - (0, 0, 0)
+spawns:
+  p1: world#(0,0,0,0,0)
+warps:
+  exit: world#(0,0,0,0,0)

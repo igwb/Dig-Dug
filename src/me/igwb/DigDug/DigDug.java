@@ -3,6 +3,7 @@ package me.igwb.DigDug;
 import java.util.logging.Level;
 
 import me.igwb.DigDug.Commands.CommandListener;
+import me.igwb.DigDug.messages.Messages;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,11 +16,14 @@ public class DigDug extends JavaPlugin {
     private CommandListener myCommandListener;
     private EventListener eventListener;
     private ArenaManager myArenaManager;
+    private Messages myMessages;
 
     /**
      * Called by Bukkit.
      */
     public void onEnable() {
+
+        myMessages = new Messages();
 
         worldEditPlugin = (WorldEditPlugin) this.getServer().getPluginManager().getPlugin("WorldEdit");
 
@@ -38,6 +42,7 @@ public class DigDug extends JavaPlugin {
 
         myArenaManager = new ArenaManager();
         myArenaManager.loadArenas(this);
+
 
     }
 
@@ -80,4 +85,8 @@ public class DigDug extends JavaPlugin {
         return myArenaManager;
     }
 
+    public Messages getMessages() {
+
+        return myMessages;
+    }
 }
